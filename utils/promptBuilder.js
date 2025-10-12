@@ -1,6 +1,6 @@
 /**
  * PlotTwist+ Prompt Builder
- * Generates structured prompts for 3-act plot creation with compelling plot twists
+ * Generates structured prompts for 3-act plot creation and script generation with compelling plot twists
  */
 
 /**
@@ -78,4 +78,54 @@ Make this plot engaging, original, and filled with unexpected turns that will ke
     return prompt;
 }
 
-export { buildPlotPrompt };
+/**
+ * Builds a comprehensive prompt for script generation from plot
+ * @param {string} plot - The generated 3-act plot
+ * @returns {string} A structured prompt for script generation
+ */
+function buildScriptPrompt(plot) {
+    // Validate inputs
+    if (!plot) {
+        throw new Error('Plot parameter is required');
+    }
+
+    const prompt = `You are a professional screenwriter and dialogue specialist. Convert the following 3-act plot into a compelling script with engaging dialogue, action descriptions, and proper screenplay format.
+
+PLOT TO CONVERT:
+${plot}
+
+Please create a script that follows these guidelines:
+
+**SCRIPT REQUIREMENTS:**
+- Use proper screenplay format with scene headings, action lines, and dialogue
+- Write engaging, natural dialogue that reveals character and advances the plot
+- Include vivid action descriptions that set the scene and mood
+- Maintain the plot twists and dramatic tension from the original plot
+- Ensure dialogue is appropriate for the genre and character personalities
+- Include character names in dialogue (CHARACTER NAME: "dialogue here")
+- Add scene transitions and pacing notes where appropriate
+- Keep action lines concise but descriptive
+- Make dialogue sound natural and character-specific
+- Preserve all plot twists and revelations in the script format
+
+**FORMATTING GUIDELINES:**
+- Scene headings: INT./EXT. LOCATION - TIME
+- Action lines: Present tense, third person
+- Character names: ALL CAPS before dialogue
+- Dialogue: In quotes, natural speech patterns
+- Parentheticals: (emotion/action) when needed for clarity
+
+**OUTPUT FORMAT:**
+Structure your response as a complete script with:
+1. **FADE IN:**
+2. **ACT I** - Scene headings, action, and dialogue
+3. **ACT II** - Including the midpoint twist in script format
+4. **ACT III** - Including the final twist and resolution
+5. **FADE OUT.**
+
+Make this script engaging, professional, and ready for production. Focus on bringing the plot to life through compelling dialogue and vivid action descriptions.`;
+
+    return prompt;
+}
+
+export { buildPlotPrompt, buildScriptPrompt };

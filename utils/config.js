@@ -9,9 +9,8 @@
  */
 export function getAPIConfig() {
     return {
-        claudeApiKey: process.env.CLAUDE_API_KEY,
-        openaiApiKey: process.env.OPENAI_API_KEY,
-        huggingfaceApiKey: process.env.HF_API_KEY
+        groqApiKey: process.env.GROQ_API_KEY,
+        cohereApiKey: process.env.COHERE_API_KEY
     };
 }
 
@@ -25,3 +24,4 @@ export function getServerConfig() {
         nodeEnv: process.env.NODE_ENV || 'development'
     };
 }
+

@@ -99,7 +99,6 @@ router.post('/', async (req, res) => {
 		}
 
 		console.log('\n=== Voice Generation Request ===');
-		console.log('Script length:', script.length);
 		console.log('Include narration:', includeNarration);
 		console.log('Narrator voice:', narratorVoice);
 		console.log('Voice mapping:', Object.keys(voiceMapping).length, 'characters');
@@ -108,18 +107,18 @@ router.post('/', async (req, res) => {
 		const usageBeforeStats = getUsageStats();
 		console.log(`\nCurrent ElevenLabs usage: ${usageBeforeStats.used} / ${usageBeforeStats.limit} chars (${usageBeforeStats.percentUsed}%)`);
 
-		// Generate output directory path
-		const voiceOutputDir = path.join(__dirname, '../voice-output');
-		clearVoiceSessions(voiceOutputDir);
-		const outputDir = path.join(voiceOutputDir, `session-${Date.now()}`);
+		// Clear previous voice data
+		const voiceDir = path.join(process.cwd(), 'data', 'voice');
+		if (fs.existsSync(voiceDir)) {
+			fs.rmSync(voiceDir, { recursive: true, force: true });
+		}
 
-		// Generate voice audio
+		// Generate voice audio (loads script from data/script folder)
 		// TEMPORARILY USING GOOGLE TTS TO SAVE API CALLS
-		const results = await generateScriptVoices(script, {
+		const results = await generateScriptVoices({
 			includeNarration,
 			narratorVoice,
 			voiceMapping,
-			outputDir,
 			provider: 'google'  // Force Google TTS (free, unlimited)
 		});
 
@@ -158,7 +157,6 @@ router.post('/', async (req, res) => {
 					remaining: usageAfterStats.remaining,
 					percentUsed: usageAfterStats.percentUsed
 				},
-				outputDirectory: outputDir,
 				generatedAt: new Date().toISOString()
 			}
 		});
@@ -210,9 +208,9 @@ router.get('/audio/:filename', (req, res) => {
 			});
 		}
 
-		// Search in voice-output directory
-		const voiceOutputDir = path.join(__dirname, '../voice-output');
-		const latestSession = getLatestSessionDir(voiceOutputDir);
+	// Search in data directory
+	const voiceOutputDir = path.join(process.cwd(), 'data');
+	const latestSession = getLatestSessionDir(voiceOutputDir);
 		if (latestSession) {
 			const filePath = path.join(latestSession, filename);
 			if (fs.existsSync(filePath)) {
@@ -233,6 +231,29 @@ router.get('/audio/:filename', (req, res) => {
 			success: false,
 			error: error.message || 'Failed to serve audio file'
 		});
+	}
+});
+
+/**
+ * GET /api/generate-voice/audio/:actFolder/:filename
+ * Serves generated audio files from per-act folders
+ */
+router.get('/audio/:actFolder/:filename', (req, res) => {
+	try {
+		const { actFolder, filename } = req.params;
+		if (filename.includes('..') || filename.includes('/') || filename.includes('\\') || actFolder.includes('..')) {
+			return res.status(400).json({ success: false, error: 'Invalid filename or folder' });
+		}
+		const voiceDir = path.join(process.cwd(), 'data', 'voice', actFolder);
+		const filePath = path.join(voiceDir, filename);
+		if (fs.existsSync(filePath)) {
+			res.type('audio/mpeg');
+			return res.sendFile(filePath);
+		}
+		res.status(404).json({ success: false, error: 'Audio file not found' });
+	} catch (error) {
+		console.error('Error serving audio file:', error);
+		res.status(500).json({ success: false, error: error.message || 'Failed to serve audio file' });
 	}
 });
 

@@ -5,6 +5,8 @@
 
 import express from 'express';
 import { generatePlotTwist } from '../utils/plotGenerator.js';
+import fs from 'fs';
+import path from 'path';
 
 const router = express.Router();
 
@@ -77,6 +79,21 @@ router.post('/', async (req, res) => {
         console.log('Plot generation completed');
         console.log('Provider:', result.provider);
         console.log('Plot length:', result.plot.length, 'characters');
+
+        // Save plot to data/plot folder with separate act files
+        const plotDir = path.join(process.cwd(), 'data', 'plot');
+        if (!fs.existsSync(plotDir)) {
+            fs.mkdirSync(plotDir, { recursive: true });
+        }
+        
+        // Save individual act files
+        fs.writeFileSync(path.join(plotDir, 'plot-act-one.txt'), result.acts.actI || '');
+        fs.writeFileSync(path.join(plotDir, 'plot-act-two.txt'), result.acts.actII || '');
+        fs.writeFileSync(path.join(plotDir, 'plot-act-three.txt'), result.acts.actIII || '');
+        
+        // Also save complete plot
+        fs.writeFileSync(path.join(plotDir, 'plot-complete.txt'), result.plot);
+        console.log('Plot saved to:', plotDir);
 
         // Return the generated plot
         res.json({

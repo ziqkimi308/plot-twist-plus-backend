@@ -36,23 +36,14 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
     try {
-        const { plot, title, style } = req.body;
-
-        // Validate input
-        if (!plot || typeof plot !== 'string' || plot.trim().length === 0) {
-            return res.status(400).json({
-                success: false,
-                error: 'Plot is required and must be a non-empty string'
-            });
-        }
+        const { title, style } = req.body;
 
         console.log('\n=== Script Generation Request ===');
-        console.log('Plot length:', plot.length);
         console.log('Title:', title || 'untitled');
         console.log('Style:', style || 'default');
 
-        // Convert plot to screenplay
-        const result = await convertPlotToScreenplay(plot, {
+        // Convert plot to screenplay (loads plot from data folder)
+        const result = await convertPlotToScreenplay({
             title: title?.trim(),
             style: style?.trim()
         });

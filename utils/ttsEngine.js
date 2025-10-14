@@ -322,15 +322,22 @@ async function generateWithGoogleTTS(text, language = 'en') {
  * @param {Object} options - Generation options
  * @returns {Promise<Array>} Array of audio results with character, audio buffer, and metadata
  */
-async function generateScriptVoices(script, options = {}) {
-	if (!script || typeof script !== 'string') {
-		throw new Error('Script must be a non-empty string');
+async function generateScriptVoices(options = {}) {
+	// Load complete script from data/script folder
+	const scriptDir = path.join(process.cwd(), 'data', 'script');
+	if (!fs.existsSync(scriptDir)) {
+		throw new Error('Script folder does not exist');
 	}
+	const scriptFile = path.join(scriptDir, 'script-complete.txt');
+	if (!fs.existsSync(scriptFile)) {
+		throw new Error('No script file found in data/script folder');
+	}
+	const script = fs.readFileSync(scriptFile, 'utf-8');
 
 	const {
 		provider = 'auto', // 'auto', 'elevenlabs', 'google'
 		language = 'en',
-		outputDir = path.join(__dirname, '../voice-output'),
+		outputDir = path.join(process.cwd(), 'data', 'voice'),
 		voiceMapping = {}, // Map character names to voice names
 		includeNarration = false, // Include action lines as narration
 		narratorVoice = 'john' // Voice for narrator (default: John Doe - Deep narrator voice)
@@ -372,11 +379,52 @@ async function generateScriptVoices(script, options = {}) {
 
 	const results = [];
 
+	// Helper: Determine act for each line
+	function getActForLine(order, script) {
+		const lines = script.split('\n');
+		let act = 'I';
+		let actOrder = 0;
+		let actMarkers = [];
+		// Find all act markers and their line numbers
+		for (let i = 0; i < lines.length; i++) {
+			const match = lines[i].match(/^ACT\s+(I+|II|III|[IVX]+|\d+)/i);
+			if (match) {
+				actMarkers.push({ act: match[1], lineNum: i });
+			}
+		}
+		// Find which act the current order belongs to
+		let currentAct = 'I';
+		let currentActIndex = 0;
+		let lineCount = 0;
+		for (let i = 0; i < lines.length; i++) {
+			if (actMarkers[currentActIndex + 1] && i >= actMarkers[currentActIndex + 1].lineNum) {
+				currentActIndex++;
+				currentAct = actMarkers[currentActIndex].act;
+			}
+			if (lines[i].trim()) {
+				if (lineCount === order) return currentAct;
+				lineCount++;
+			}
+		}
+		return currentAct;
+	}
 
 	for (let i = 0; i < dialogue.length; i++) {
 		const { character, line, order } = dialogue[i];
-		console.log(`\nGenerating audio ${i + 1}/${dialogue.length}: ${character}`);
-		console.log(`   Text: ${line.slice(0, 60)}${line.length > 60 ? '...' : ''}`);
+		const act = getActForLine(order, script);
+		
+		// Map act to folder name: I -> voice-act-one, II -> voice-act-two, III -> voice-act-three
+		let actFolderName;
+		if (act === 'I') actFolderName = 'voice-act-one';
+		else if (act === 'II') actFolderName = 'voice-act-two';
+		else if (act === 'III') actFolderName = 'voice-act-three';
+		else actFolderName = `voice-act-${act}`;
+		
+		const actDir = path.join(outputDir, actFolderName);
+		if (!fs.existsSync(actDir)) {
+			fs.mkdirSync(actDir, { recursive: true });
+		}
+		// console.log(`   Act ${act}: ${actDir}`);
 
 		let audioBuffer = null;
 		let providerUsed = null;
@@ -431,16 +479,17 @@ async function generateScriptVoices(script, options = {}) {
 		// Save audio file
 		if (audioBuffer) {
 			const filename = `${String(order).padStart(3, '0')}_${character.replace(/\s+/g, '_')}.mp3`;
-			const filepath = path.join(outputDir, filename);
+			const filepath = path.join(actDir, filename);
 			fs.writeFileSync(filepath, audioBuffer);
 
 			results.push({
 				character,
 				line,
 				order,
+				act,
 				audioFile: filename,
 				audioPath: filepath,
-				audioUrl: `/api/generate-voice/audio/${filename}`,
+				audioUrl: `/api/generate-voice/audio/${actFolderName}/${filename}`,
 				provider: providerUsed,
 				success: true,
 				sizeKB: (audioBuffer.length / 1024).toFixed(2)
@@ -451,6 +500,7 @@ async function generateScriptVoices(script, options = {}) {
 				character,
 				line,
 				order,
+				act,
 				audioFile: null,
 				provider: 'none',
 				success: true,

@@ -1,21 +1,21 @@
 /**
- * Generate Download Route
- * Endpoint for combining script, images, and voice into downloadable assets
+ * Generate Product Route
+ * Endpoint for assembling the final product with script, images, and voice
  */
 
 import express from 'express';
 import {
-	generateDownloadData,
+	assembleProduct,
 	generatePlaybackInstructions,
-	exportDownload,
+	exportProduct,
 	generateSubtitles
-} from '../utils/downloadGenerator.js';
+} from '../utils/productAssembler.js';
 
 const router = express.Router();
 
 /**
- * POST /api/generate-download
- * Combines script text, act images, and voice audio into downloadable assets
+ * POST /api/generate-product
+ * Assembles the final product with script, images, and voice audio
  * 
  * Request body:
  * {
@@ -45,7 +45,7 @@ const router = express.Router();
  * Response:
  * {
  *   "success": true,
- *   "download": {
+ *   "product": {
  *     "plot": "string",
  *     "script": "string", 
  *     "images": [...],
@@ -83,13 +83,13 @@ router.post('/', async (req, res) => {
 			});
 		}
 
-		console.log('\n=== Download Generation Request ===');
+		console.log('\n=== Product Assembly Request ===');
 		console.log('Script length:', script.length);
 		console.log('Images count:', images.length);
 		console.log('Audio files count:', audioFiles.length);
 
-		// Generate download data (SIMPLIFIED FOR TESTING)
-		const downloadData = {
+		// Assemble product data
+		const productData = {
 			plot: script,
 			script: script,
 			images: images,
@@ -100,16 +100,16 @@ router.post('/', async (req, res) => {
 			}
 		};
 
-		// Generate playback instructions for frontend (SIMPLIFIED)
+		// Generate playback instructions for frontend
 		const playback = {
 			instructions: {
-				totalFiles: downloadData.metadata.totalFiles,
-				downloadFormat: "zip"
+				totalFiles: productData.metadata.totalFiles,
+				format: "presentation"
 			},
-			metadata: downloadData.metadata
+			metadata: productData.metadata
 		};
 
-		// Generate subtitles (SIMPLIFIED)
+		// Generate subtitles
 		const subtitles = {
 			subtitles: [],
 			format: 'srt',
@@ -117,41 +117,41 @@ router.post('/', async (req, res) => {
 			generatedAt: new Date().toISOString()
 		};
 
-		// Export complete download structure (SIMPLIFIED)
-		const exportedDownload = {
+		// Export complete product structure
+		const exportedProduct = {
 			format: 'json',
-			data: downloadData,
-			filename: `download_${Date.now()}.json`
+			data: productData,
+			filename: `product_${Date.now()}.json`
 		};
 
-		console.log('Download generation completed');
-		console.log('Total files:', downloadData.metadata.totalFiles);
+		console.log('Product assembly completed');
+		console.log('Total files:', productData.metadata.totalFiles);
 
-		// Return the download data
+		// Return the product data
 		res.json({
 			success: true,
-			download: downloadData,
+			product: productData,
 			playback,
 			subtitles,
-			export: exportedDownload,
+			export: exportedProduct,
 			metadata: {
-				totalFiles: downloadData.metadata.totalFiles,
-				generatedAt: downloadData.metadata.generatedAt
+				totalFiles: productData.metadata.totalFiles,
+				generatedAt: productData.metadata.generatedAt
 			}
 		});
 
 	} catch (error) {
-		console.error('Error generating download:', error);
+		console.error('Error assembling product:', error);
 		res.status(500).json({
 			success: false,
-			error: error.message || 'Failed to generate download',
+			error: error.message || 'Failed to assemble product',
 			timestamp: new Date().toISOString()
 		});
 	}
 });
 
 /**
- * POST /api/generate-download/complete
+ * POST /api/generate-product/complete
  * Complete workflow: Takes only genre/characters/setting and generates everything
  * This is a convenience endpoint that chains all generation steps
  * 
@@ -174,8 +174,8 @@ router.post('/complete', async (req, res) => {
 			});
 		}
 
-		console.log('\n=== Complete Download Generation Request ===');
-		console.log('This will generate: Plot → Script → Images → Voice → Download');
+		console.log('\n=== Complete Product Generation Request ===');
+		console.log('This will generate: Plot → Script → Images → Voice → Product');
 		console.log('Genre:', genre);
 		console.log('Characters:', characters);
 		console.log('Setting:', setting);
@@ -190,7 +190,7 @@ router.post('/complete', async (req, res) => {
 				step2: 'Call POST /api/generate-script with { plot }',
 				step3: 'Call POST /api/generate-image with { plot }',
 				step4: 'Call POST /api/generate-voice with { script }',
-				step5: 'Call POST /api/generate-download with { script, images, audioFiles }'
+				step5: 'Call POST /api/generate-product with { script, images, audioFiles }'
 			},
 			note: 'Frontend should chain these calls, or we can implement server-side chaining'
 		});
@@ -199,7 +199,7 @@ router.post('/complete', async (req, res) => {
 		console.error('Error in complete generation:', error);
 		res.status(500).json({
 			success: false,
-			error: error.message || 'Failed to generate complete download'
+			error: error.message || 'Failed to generate complete product'
 		});
 	}
 });

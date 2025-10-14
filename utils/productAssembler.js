@@ -1,17 +1,17 @@
 /**
- * Download Generator Utility
- * Handles creation and organization of downloadable assets
+ * Product Assembler Utility
+ * Handles creation and organization of final product assets (images, script, audio)
  */
 
 /**
- * Generate download data by combining script, images, and audio
+ * Assemble product data by combining script, images, and audio
  * @param {string} script - Full screenplay text
  * @param {Array} images - Array of image objects (3 images, one per act)
  * @param {Array} audioFiles - Array of audio file objects
- * @returns {Object} Download data with organized assets
+ * @returns {Object} Product data with organized assets
  */
-export function generateDownloadData(script, images = [], audioFiles = []) {
-	console.log('Generating download data...');
+export function assembleProduct(script, images = [], audioFiles = []) {
+	console.log('Assembling product data...');
 	console.log('Script type:', typeof script);
 	console.log('Script value:', script);
 	console.log('Script length:', script?.length || 0);
@@ -33,15 +33,15 @@ export function generateDownloadData(script, images = [], audioFiles = []) {
 	// Match images to acts
 	const actImages = matchImagesToActs(images, acts);
 
-	// Generate download assets
-	const downloadAssets = generateDownloadAssets(acts, actImages, audioFiles, timing);
+	// Generate product assets
+	const productAssets = generateProductAssets(acts, actImages, audioFiles, timing);
 
 	return {
 		plot: script, // Full script as plot
 		script: script,
 		images: images,
 		audioFiles: audioFiles,
-		assets: downloadAssets,
+		assets: productAssets,
 		metadata: {
 			totalFiles: images.length + audioFiles.length + 2, // +2 for plot and script
 			generatedAt: new Date().toISOString()
@@ -50,17 +50,17 @@ export function generateDownloadData(script, images = [], audioFiles = []) {
 }
 
 /**
- * Generate playback instructions for the download
- * @param {Object} downloadData - Generated download data
+ * Generate playback instructions for the product
+ * @param {Object} productData - Generated product data
  * @returns {Object} Playback instructions and controls
  */
-export function generatePlaybackInstructions(downloadData) {
-	const { assets, metadata } = downloadData;
+export function generatePlaybackInstructions(productData) {
+	const { assets, metadata } = productData;
 
 	return {
 		instructions: {
 			totalFiles: metadata.totalFiles,
-			downloadFormat: "zip",
+			format: "presentation",
 			fileTypes: {
 				plot: "Plot text file",
 				script: "Script text file",
@@ -73,34 +73,34 @@ export function generatePlaybackInstructions(downloadData) {
 }
 
 /**
- * Export download in various formats
- * @param {Object} downloadData - Generated download data
+ * Export product in various formats
+ * @param {Object} productData - Generated product data
  * @param {string} format - Export format (json, zip, etc.)
  * @returns {Object} Export data
  */
-export function exportDownload(downloadData, format = 'json') {
-	console.log(`Exporting download in ${format} format...`);
+export function exportProduct(productData, format = 'json') {
+	console.log(`Exporting product in ${format} format...`);
 
 	switch (format.toLowerCase()) {
 		case 'json':
 			return {
 				format: 'json',
-				data: downloadData,
-				filename: `download_${Date.now()}.json`
+				data: productData,
+				filename: `product_${Date.now()}.json`
 			};
 
 		case 'zip':
 			return {
 				format: 'zip',
-				data: generateZipDownload(downloadData),
-				filename: `download_${Date.now()}.zip`
+				data: generateZipProduct(productData),
+				filename: `product_${Date.now()}.zip`
 			};
 
 		default:
 			return {
 				format: 'json',
-				data: downloadData,
-				filename: `download_${Date.now()}.json`
+				data: productData,
+				filename: `product_${Date.now()}.json`
 			};
 	}
 }
@@ -225,7 +225,7 @@ function matchImagesToActs(images, acts) {
 	return actImages;
 }
 
-function generateDownloadAssets(acts, actImages, audioFiles, timing) {
+function generateProductAssets(acts, actImages, audioFiles, timing) {
 	const assets = [];
 
 	acts.forEach((act, index) => {
@@ -235,7 +235,7 @@ function generateDownloadAssets(acts, actImages, audioFiles, timing) {
 			content: act.content,
 			image: actImages[act.number],
 			audio: audioFiles[index] || null,
-			type: 'downloadable'
+			type: 'presentation'
 		};
 
 		assets.push(asset);
@@ -274,8 +274,8 @@ function extractDialogueLines(script) {
 	return lines;
 }
 
-function generateZipDownload(downloadData) {
-	const { plot, script, images, audioFiles } = downloadData;
+function generateZipProduct(productData) {
+	const { plot, script, images, audioFiles } = productData;
 
 	return {
 		files: [
@@ -284,52 +284,51 @@ function generateZipDownload(downloadData) {
 			...images.map((img, i) => ({ name: `image_${i + 1}.jpg`, url: img.imageUrl })),
 			...audioFiles.map((audio, i) => ({ name: `audio_${i + 1}.mp3`, url: audio.audioFile }))
 		],
-		metadata: downloadData.metadata
+		metadata: productData.metadata
 	};
 }
 
-function generateHtmlDownload(downloadData) {
-	function generateHtmlDownload(downloadData) {
-		const { plot, script, images, audioFiles, metadata } = downloadData;
+function generateHtmlProduct(productData) {
+	const { plot, script, images, audioFiles, metadata } = productData;
 
-		return `<!DOCTYPE html>
+	return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PlotTwist+ Download Page</title>
+    <title>PlotTwist+ Product Page</title>
     <style>
         body { margin: 0; padding: 20px; font-family: Arial, sans-serif; background: #f5f5f5; }
-        .download-container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
-        .download-section { margin: 20px 0; }
+        .product-container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
+        .product-section { margin: 20px 0; }
         .download-btn { display: inline-block; margin: 10px; padding: 15px 25px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
         .download-btn:hover { background: #0056b3; }
         .content-preview { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; max-height: 200px; overflow-y: auto; }
     </style>
 </head>
 <body>
-    <div class="download-container">
-        <h1>PlotTwist+ Story Download</h1>
+    <div class="product-container">
+        <h1>PlotTwist+ Story Product</h1>
         <p>Generated: ${metadata.generatedAt}</p>
         
-        <div class="download-section">
+        <div class="product-section">
             <h2>Plot</h2>
             <div class="content-preview">${plot?.substring(0, 500) || 'No plot available'}...</div>
             <a href="#" class="download-btn" onclick="downloadText('plot.txt', '${plot}')">Download Plot</a>
         </div>
         
-        <div class="download-section">
+        <div class="product-section">
             <h2>Script</h2>
             <div class="content-preview">${script?.substring(0, 500) || 'No script available'}...</div>
             <a href="#" class="download-btn" onclick="downloadText('script.txt', '${script}')">Download Script</a>
         </div>
         
-        <div class="download-section">
+        <div class="product-section">
             <h2>Images (${images?.length || 0} files)</h2>
             ${images?.map((img, i) => `<a href="${img.imageUrl}" class="download-btn" download="image_${i + 1}.jpg">Image ${i + 1}</a>`).join('') || 'No images available'}
         </div>
         
-        <div class="download-section">
+        <div class="product-section">
             <h2>Audio Files (${audioFiles?.length || 0} files)</h2>
             ${audioFiles?.map((audio, i) => `<a href="${audio.audioFile}" class="download-btn" download="audio_${i + 1}.mp3">Audio ${i + 1}</a>`).join('') || 'No audio files available'}
         </div>
@@ -348,5 +347,4 @@ function generateHtmlDownload(downloadData) {
     </script>
 </body>
 </html>`;
-	}
 }

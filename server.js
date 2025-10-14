@@ -5,7 +5,7 @@ import generateImageRouter from './routes/generateImage.js';
 import generatePlotRouter from './routes/generatePlot.js';
 import generateScriptRouter from './routes/generateScript.js';
 import generateVoiceRouter from './routes/generateVoice.js';
-import generateDownloadRouter from './routes/generateDownload.js';
+import generateProductRouter from './routes/generateProduct.js';
 import saveStoryRouter from './routes/saveStory.js';
 
 // Load environment variables
@@ -23,7 +23,7 @@ app.use('/api/generate-plot', generatePlotRouter);
 app.use('/api/generate-script', generateScriptRouter);
 app.use('/api/generate-image', generateImageRouter);
 app.use('/api/generate-voice', generateVoiceRouter);
-app.use('/api/generate-download', generateDownloadRouter);
+app.use('/api/generate-product', generateProductRouter);
 app.use('/api/save-story', saveStoryRouter);
 
 // Start server

@@ -12,7 +12,8 @@ export function getAPIConfig() {
         groqApiKey: process.env.GROQ_API_KEY,
         cohereApiKey: process.env.COHERE_API_KEY,
         huggingfaceApiKey: process.env.HUGGINGFACE_API_KEY,
-        elevenlabsApiKey: process.env.ELEVENLABS_API_KEY
+        elevenlabsApiKey: process.env.ELEVENLABS_API_KEY,
+        fishaudioApiKey: process.env.FISHAUDIO_API_KEY
     };
 }
 

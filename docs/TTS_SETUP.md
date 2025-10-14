@@ -1,15 +1,16 @@
-# PlotTwist+ Text-to-Speech (TTS) System
+# PlotTwist+ TTS Engine Setup
 
-## Overview
+Complete guide for Text-to-Speech voice generation system.
 
-The TTS Engine converts screenplay scripts into audio files with multiple AI voice providers and automatic fallback.
+---
 
-## Features
+## 🎙️ **Overview**
 
-### ✅ **3-Tier Fallback System**
-1. **Primary: ElevenLabs** - High quality, natural voices (10,000 chars/month free)
-2. **Secondary: Google TTS** - Free unlimited, basic quality
-3. **Tertiary: Graceful failure** - Logs error, continues processing
+Your TTS engine uses a **three-tier fallback system**:
+
+1. **Primary:** ElevenLabs (high quality, 10k chars/month free)
+2. **Secondary:** Fish Audio (studio quality, 8k credits/month free) ⭐ NEW!
+3. **Tertiary:** Google TTS (free unlimited, basic quality)
 
 ### ✅ **Automatic Dialogue Extraction**
 - Parses screenplay format (character names in ALL CAPS)

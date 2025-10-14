@@ -2,8 +2,8 @@
  * PlotTwist+ Text-to-Speech Engine
  * Converts screenplay scripts into audio files using multiple TTS providers with fallback
  * Primary: ElevenLabs (high quality, 10k chars/month free)
- * Secondary: Google TTS (free unlimited, basic quality)
- * Tertiary: Placeholder (silent audio)
+ * Secondary: Fish Audio (studio quality, 8k credits/month free)
+ * Tertiary: Google TTS (free unlimited, basic quality)
  */
 
 import fetch from 'node-fetch';
@@ -24,9 +24,10 @@ const ELEVENLABS_VOICES = {
     'adam': 'pNInz6obpgDQGcFmaJgB',      // Deep, mature male
     'antoni': 'ErXwobaYiN019PkySvjV',    // Well-rounded male
     'arnold': 'VR6AewLTigWG4xSOukaG',    // Crisp, resonant male
-    'josh': 'TxGEqnHWrfWFTfGW9XjX',      // Young, energetic male
+    'josh': 'TxGEqnHWrfWFTfGW9XjX',      // Young, energetic male (great for Marcus)
     'sam': 'yoZ06aMxZJJ28mfd3POQ',       // Raspy, dynamic male
-    'nigel': 'adZJnAl6IYZw4EYI9FVd',     // Nigel Graves - Professional narrator (BEST FOR NARRATION)
+    'nigel': 'adZJnAl6IYZw4EYI9FVd',     // Nigel Graves - Professional voice (good for main characters)
+    'john': 'EiNlNiXeDU1pqqOPrYMO',      // John Doe - Deep narrator voice (BEST FOR NARRATION)
     
     // Female voices
     'bella': 'EXAVITQu4vr4xnSDxMaL',     // Soft, well-rounded female
@@ -289,6 +290,43 @@ async function generateWithElevenLabs(text, apiKey, options = {}) {
 }
 
 /**
+ * Generate TTS audio using Fish Audio API
+ * @param {string} text - Text to convert to speech
+ * @param {string} apiKey - Fish Audio API key
+ * @param {Object} options - Voice options
+ * @returns {Promise<Buffer>} Audio buffer (MP3)
+ */
+async function generateWithFishAudio(text, apiKey, options = {}) {
+    const {
+        model = 's1',  // Default model: s1 (best quality)
+        format = 'mp3'
+    } = options;
+
+    const url = 'https://api.fish.audio/v1/tts';
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            text,
+            format
+        }),
+        timeout: 30000
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Fish Audio API error ${response.status}: ${errorText.slice(0, 200)}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+}
+
+/**
  * Generate TTS audio using Google TTS (free, unlimited)
  * @param {string} text - Text to convert to speech
  * @param {string} language - Language code (e.g., 'en', 'es')
@@ -331,12 +369,12 @@ async function generateScriptVoices(script, options = {}) {
         outputDir = path.join(__dirname, '../voice-output'),
         voiceMapping = {}, // Map character names to voice names
         includeNarration = false, // Include action lines as narration
-        narratorVoice = 'nigel' // Voice for narrator (default: Nigel Graves - professional narrator)
+        narratorVoice = 'john' // Voice for narrator (default: John Doe - Deep narrator voice)
     } = options;
 
     // Get API config
     const config = getAPIConfig();
-    const { elevenlabsApiKey } = config;
+    const { elevenlabsApiKey, fishaudioApiKey } = config;
 
     // Extract dialogue from script
     let dialogue;
@@ -378,8 +416,8 @@ async function generateScriptVoices(script, options = {}) {
         let audioBuffer = null;
         let providerUsed = null;
 
-        // Try ElevenLabs first if available and not explicitly set to google
-        if (provider !== 'google' && elevenlabsApiKey) {
+        // Try ElevenLabs first if available and not explicitly set to google/fishaudio
+        if (provider !== 'google' && provider !== 'fishaudio' && elevenlabsApiKey) {
             try {
                 // Get voice for this character (or use default)
                 const voiceName = voiceMapping[character] || 'adam';
@@ -394,8 +432,21 @@ async function generateScriptVoices(script, options = {}) {
             }
         }
 
-        // Try Google TTS if ElevenLabs failed or not available
-        if (!audioBuffer && provider !== 'elevenlabs') {
+        // Try Fish Audio if ElevenLabs failed or not available
+        if (!audioBuffer && provider !== 'google' && provider !== 'elevenlabs' && fishaudioApiKey) {
+            try {
+                console.log('   Trying Fish Audio...');
+                audioBuffer = await generateWithFishAudio(line, fishaudioApiKey);
+                providerUsed = 'fishaudio';
+                console.log('   ✅ Fish Audio success');
+                await sleep(1000); // Rate limit courtesy
+            } catch (error) {
+                console.log(`   ❌ Fish Audio failed: ${error.message}`);
+            }
+        }
+
+        // Try Google TTS if both ElevenLabs and Fish Audio failed or not available
+        if (!audioBuffer && provider !== 'elevenlabs' && provider !== 'fishaudio') {
             try {
                 console.log('   Trying Google TTS...');
                 audioBuffer = await generateWithGoogleTTS(line, language);

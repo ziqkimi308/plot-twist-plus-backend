@@ -15,6 +15,24 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
+// Helper to get latest session folder
+function getLatestSessionDir(voiceOutputDir) {
+	const sessions = fs.readdirSync(voiceOutputDir)
+		.filter((d) => fs.statSync(path.join(voiceOutputDir, d)).isDirectory())
+		.sort();
+	return sessions.length > 0 ? path.join(voiceOutputDir, sessions[sessions.length - 1]) : null;
+}
+
+// Clear previous session folders before generating new voices
+function clearVoiceSessions(voiceOutputDir) {
+	const sessions = fs.readdirSync(voiceOutputDir)
+		.filter((d) => fs.statSync(path.join(voiceOutputDir, d)).isDirectory());
+	for (const session of sessions) {
+		const sessionPath = path.join(voiceOutputDir, session);
+		fs.rmSync(sessionPath, { recursive: true, force: true });
+	}
+}
+
 /**
  * POST /api/generate-voice
  * Generates voice audio files from a screenplay script
@@ -91,7 +109,9 @@ router.post('/', async (req, res) => {
 		console.log(`\nCurrent ElevenLabs usage: ${usageBeforeStats.used} / ${usageBeforeStats.limit} chars (${usageBeforeStats.percentUsed}%)`);
 
 		// Generate output directory path
-		const outputDir = path.join(__dirname, '../voice-output', `session-${Date.now()}`);
+		const voiceOutputDir = path.join(__dirname, '../voice-output');
+		clearVoiceSessions(voiceOutputDir);
+		const outputDir = path.join(voiceOutputDir, `session-${Date.now()}`);
 
 		// Generate voice audio
 		// TEMPORARILY USING GOOGLE TTS TO SAVE API CALLS
@@ -192,17 +212,12 @@ router.get('/audio/:filename', (req, res) => {
 
 		// Search in voice-output directory
 		const voiceOutputDir = path.join(__dirname, '../voice-output');
-
-		// Find the file in subdirectories
-		const sessions = fs.readdirSync(voiceOutputDir);
-
-		for (const session of sessions) {
-			const sessionPath = path.join(voiceOutputDir, session);
-			if (fs.statSync(sessionPath).isDirectory()) {
-				const filePath = path.join(sessionPath, filename);
-				if (fs.existsSync(filePath)) {
-					return res.sendFile(filePath);
-				}
+		const latestSession = getLatestSessionDir(voiceOutputDir);
+		if (latestSession) {
+			const filePath = path.join(latestSession, filename);
+			if (fs.existsSync(filePath)) {
+				res.type('audio/mpeg');
+				return res.sendFile(filePath);
 			}
 		}
 

@@ -5,7 +5,7 @@ import generateImageRouter from './routes/generateImage.js';
 import generatePlotRouter from './routes/generatePlot.js';
 import generateScriptRouter from './routes/generateScript.js';
 import generateVoiceRouter from './routes/generateVoice.js';
-import generateSlideshowRouter from './routes/generateSlideshow.js';
+import generateDownloadRouter from './routes/generateDownload.js';
 import saveStoryRouter from './routes/saveStory.js';
 
 // Load environment variables
@@ -16,14 +16,14 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Routes
 app.use('/api/generate-plot', generatePlotRouter);
 app.use('/api/generate-script', generateScriptRouter);
 app.use('/api/generate-image', generateImageRouter);
 app.use('/api/generate-voice', generateVoiceRouter);
-app.use('/api/generate-slideshow', generateSlideshowRouter);
+app.use('/api/generate-download', generateDownloadRouter);
 app.use('/api/save-story', saveStoryRouter);
 
 // Start server

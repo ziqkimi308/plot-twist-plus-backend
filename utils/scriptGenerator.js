@@ -5,6 +5,7 @@
 
 import { buildScriptPrompt } from './promptBuilder.js';
 import { generateText } from './aiTextGenerator.js';
+import { extractDialogue, extractScriptWithNarration } from './ttsEngine.js';
 
 /**
  * Convert a plot into a properly formatted screenplay
@@ -15,28 +16,36 @@ import { generateText } from './aiTextGenerator.js';
  * @returns {Promise<Object>} Script data with metadata
  */
 export async function convertPlotToScreenplay(plot, options = {}) {
-    const { title, style } = options;
-    
-    // Validate input
-    if (!plot || typeof plot !== 'string' || plot.trim().length === 0) {
-        throw new Error('Plot is required and must be a non-empty string');
-    }
+	const { title, style } = options;
+	// Validate input
+	if (!plot || typeof plot !== 'string' || plot.trim().length === 0) {
+		throw new Error('Plot is required and must be a non-empty string');
+	}
 
-    console.log('Building screenplay prompt...');
-    
-    // Build the prompt using promptBuilder (only takes plot parameter)
-    const prompt = buildScriptPrompt(plot);
-    
-    console.log('Converting plot to screenplay with AI...');
-    
-    // Generate the screenplay using AI
-    const scriptText = await generateText(prompt);
-    
-    // Determine which provider was used
-    const provider = 'groq'; // Default assumption
-    
-    return {
-        script: scriptText,
-        provider
-    };
+	console.log('Building screenplay prompt...');
+	// Build the prompt using promptBuilder (only takes plot parameter)
+	const prompt = buildScriptPrompt(plot);
+
+	console.log('Converting plot to screenplay with AI...');
+	// Generate the screenplay using AI
+	const scriptText = await generateText(prompt);
+
+	// Extract scenes (scene headings) and characters from the script
+	const scriptElements = extractScriptWithNarration(scriptText);
+	// Scenes: all elements of type 'scene-heading'
+	const scenes = scriptElements.filter(e => e.type === 'scene-heading').map(e => e.line);
+	// Characters: all unique character names from dialogue
+	const dialogue = extractDialogue(scriptText);
+	const characters = [...new Set(dialogue.map(d => d.character))];
+
+	// Determine which provider was used
+	const provider = 'groq'; // Default assumption
+
+	return {
+		script: scriptText,
+		provider,
+		scenes,
+		characters
+	};
 }
+

@@ -11,12 +11,12 @@
  * @returns {string} A structured prompt for plot generation with plot twists
  */
 function buildPlotPrompt(genre, characters, setting) {
-    // Validate inputs
-    if (!genre || !characters || !setting) {
-        throw new Error('All parameters (genre, characters, setting) are required');
-    }
+	// Validate inputs
+	if (!genre || !characters || !setting) {
+		throw new Error('All parameters (genre, characters, setting) are required');
+	}
 
-    const prompt = `You are a master storyteller specializing in plot twists and unexpected revelations. Create a compelling 3-act plot structure with MULTIPLE plot twists for the following story elements:
+	const prompt = `You are a master storyteller specializing in plot twists and unexpected revelations. Create a compelling 3-act plot structure with MULTIPLE plot twists for the following story elements:
 
 GENRE: ${genre}
 CHARACTERS: ${characters}
@@ -75,7 +75,7 @@ Structure your response as follows:
 
 Make this plot engaging, original, and filled with unexpected turns that will keep audiences guessing until the very end.`;
 
-    return prompt;
+	return prompt;
 }
 
 /**
@@ -84,12 +84,12 @@ Make this plot engaging, original, and filled with unexpected turns that will ke
  * @returns {string} A structured prompt for script generation
  */
 function buildScriptPrompt(plot) {
-    // Validate inputs
-    if (!plot) {
-        throw new Error('Plot parameter is required');
-    }
+	// Validate inputs
+	if (!plot) {
+		throw new Error('Plot parameter is required');
+	}
 
-    const prompt = `You are a professional screenwriter and audiobook script specialist. Convert the following 3-act plot into a compelling script optimized for voice narration and audiobook production.
+	const prompt = `You are a professional screenwriter and audiobook script specialist. Convert the following 3-act plot into a compelling script optimized for voice narration and audiobook production.
 
 PLOT TO CONVERT:
 ${plot}
@@ -175,41 +175,72 @@ Sarah! You need to see this right now.
 
 Make this script compelling and perfectly formatted for audiobook production with multiple voice actors.`;
 
-    return prompt;
+	return prompt;
 }
 
 function buildImagePrompts(plot, opts = {}) {
-    if (!plot) {
-        throw new Error('Plot parameter is required');
-    }
-    const { style = 'cinematic, highly detailed, dramatic lighting', aspect = '16:9', negative = 'blurry, low quality, text, watermark' } = opts;
-    const clean = (t) => t.replace(/\*\*|__|\*|`/g, '').replace(/\s+/g, ' ').trim();
-    const takeSummary = (t) => {
-        const sentences = clean(t).split(/(?<=[.!?])\s+/).filter(Boolean);
-        const joined = sentences.slice(0, 3).join(' ');
-        return joined.length > 280 ? joined.slice(0, 277) + '...' : joined;
-    };
-    const grab = (regex) => {
-        const m = plot.match(regex);
-        return m ? m[0] : '';
-    };
-    const act1 = grab(/ACT\s*I[\s\S]*?(?=ACT\s*II|$)/i);
-    const act2 = grab(/ACT\s*II[\s\S]*?(?=ACT\s*III|$)/i);
-    const act3 = grab(/ACT\s*III[\s\S]*?$/i);
-    const fallbackSplit = () => {
-        const parts = clean(plot).split(/ACT\s*[I1]{1,3}/i).filter(Boolean);
-        return [parts[0] || plot, parts[1] || plot, parts[2] || plot];
-    };
-    const [a1, a2, a3] = (act1 && act2 && act3) ? [act1, act2, act3] : fallbackSplit();
-    const prompts = [
-        { act: 'I', summary: takeSummary(a1) },
-        { act: 'II', summary: takeSummary(a2) },
-        { act: 'III', summary: takeSummary(a3) }
-    ].map(({ act, summary }) => {
-        const prompt = `${summary}. ${style}`.trim();
-        return { act, prompt, aspect, negative };
-    });
-    return prompts;
+	if (!plot) {
+		throw new Error('Plot parameter is required');
+	}
+	const { style = 'cinematic, highly detailed, dramatic lighting, professional photography', aspect = '16:9', negative = 'blurry, low quality, text, watermark, cartoonish' } = opts;
+
+	const clean = (t) => t.replace(/\*\*|__|\*|`/g, '').replace(/\s+/g, ' ').trim();
+
+	// Extract key visual elements from the plot
+	const extractVisualElements = (text) => {
+		const cleaned = clean(text);
+
+		// Look for characters, settings, emotions, and actions
+		const characterMatches = cleaned.match(/(?:Dr\.|Detective|Officer|Patient|Nurse|Doctor|John|Sarah|Mike|Lisa)\s+\w+/gi) || [];
+		const settingMatches = cleaned.match(/(?:hospital|office|room|corridor|emergency|ICU|lab|ward|city|street|building|home|apartment)/gi) || [];
+		const actionMatches = cleaned.match(/(?:investigating|examining|discovering|revealing|confronting|running|hiding|fighting|saving|healing)/gi) || [];
+		const emotionMatches = cleaned.match(/(?:mysterious|dark|dramatic|intense|suspenseful|shocking|terrifying|hopeful|desperate|dangerous)/gi) || [];
+
+		// Get main character and setting
+		const mainCharacter = characterMatches[0] || 'protagonist';
+		const mainSetting = settingMatches[0] || 'modern setting';
+		const mood = emotionMatches[0] || 'dramatic';
+
+		return { mainCharacter, mainSetting, mood };
+	};
+
+	const grab = (regex) => {
+		const m = plot.match(regex);
+		return m ? m[0] : '';
+	};
+
+	const act1 = grab(/ACT\s*I[\s\S]*?(?=ACT\s*II|$)/i);
+	const act2 = grab(/ACT\s*II[\s\S]*?(?=ACT\s*III|$)/i);
+	const act3 = grab(/ACT\s*III[\s\S]*?$/i);
+
+	const fallbackSplit = () => {
+		const parts = clean(plot).split(/ACT\s*[I1]{1,3}/i).filter(Boolean);
+		return [parts[0] || plot, parts[1] || plot, parts[2] || plot];
+	};
+
+	const [a1, a2, a3] = (act1 && act2 && act3) ? [act1, act2, act3] : fallbackSplit();
+
+	// Extract visual elements for each act
+	const act1Elements = extractVisualElements(a1);
+	const act2Elements = extractVisualElements(a2);
+	const act3Elements = extractVisualElements(a3);
+
+	const prompts = [
+		{
+			act: 'I',
+			prompt: `Opening scene: ${act1Elements.mainCharacter} in ${act1Elements.mainSetting}, ${act1Elements.mood} atmosphere, establishing shot, ${style}`.trim()
+		},
+		{
+			act: 'II',
+			prompt: `Climactic scene: ${act2Elements.mainCharacter} facing conflict in ${act2Elements.mainSetting}, intense ${act2Elements.mood} moment, dramatic angle, ${style}`.trim()
+		},
+		{
+			act: 'III',
+			prompt: `Resolution scene: ${act3Elements.mainCharacter} in ${act3Elements.mainSetting}, ${act3Elements.mood} conclusion, wide cinematic shot, ${style}`.trim()
+		}
+	].map((item) => ({ ...item, aspect, negative }));
+
+	return prompts;
 }
 
 export { buildPlotPrompt, buildScriptPrompt, buildImagePrompts };

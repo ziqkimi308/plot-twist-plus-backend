@@ -208,9 +208,9 @@ router.get('/audio/:filename', (req, res) => {
 			});
 		}
 
-	// Search in data directory
-	const voiceOutputDir = path.join(process.cwd(), 'data');
-	const latestSession = getLatestSessionDir(voiceOutputDir);
+		// Search in data directory
+		const voiceOutputDir = path.join(process.cwd(), 'data');
+		const latestSession = getLatestSessionDir(voiceOutputDir);
 		if (latestSession) {
 			const filePath = path.join(latestSession, filename);
 			if (fs.existsSync(filePath)) {

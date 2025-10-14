@@ -4,14 +4,10 @@
 # Node modules
 node_modules/
 
-# Test files and images
-test-*.js
-test-images/
-test-images-direct/
-
-# Voice output directories
-voice-output/
-voice-demo-output/
+# Generated data
+data/plot/
+data/script/
+data/voice/
 
 # OS files
 .DS_Store

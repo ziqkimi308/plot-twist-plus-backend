@@ -43,11 +43,11 @@ export async function convertPlotToScreenplay(options = {}) {
 	if (!fs.existsSync(scriptDir)) {
 		fs.mkdirSync(scriptDir, { recursive: true });
 	}
-	
+
 	// Split script by acts
 	const actMatches = scriptText.split(/(?=ACT\s+(?:I+|II|III|ONE|TWO|THREE))/i);
 	let actI = '', actII = '', actIII = '';
-	
+
 	for (const section of actMatches) {
 		if (/ACT\s+(?:I+|ONE)/i.test(section)) {
 			actI = section;
@@ -57,12 +57,12 @@ export async function convertPlotToScreenplay(options = {}) {
 			actIII = section;
 		}
 	}
-	
+
 	// Save individual act files
 	fs.writeFileSync(path.join(scriptDir, 'script-act-one.txt'), actI);
 	fs.writeFileSync(path.join(scriptDir, 'script-act-two.txt'), actII);
 	fs.writeFileSync(path.join(scriptDir, 'script-act-three.txt'), actIII);
-	
+
 	// Also save complete script
 	fs.writeFileSync(path.join(scriptDir, 'script-complete.txt'), scriptText);
 	console.log('Script saved to:', scriptDir);

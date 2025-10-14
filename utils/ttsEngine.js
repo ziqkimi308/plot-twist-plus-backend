@@ -412,14 +412,14 @@ async function generateScriptVoices(options = {}) {
 	for (let i = 0; i < dialogue.length; i++) {
 		const { character, line, order } = dialogue[i];
 		const act = getActForLine(order, script);
-		
+
 		// Map act to folder name: I -> voice-act-one, II -> voice-act-two, III -> voice-act-three
 		let actFolderName;
 		if (act === 'I') actFolderName = 'voice-act-one';
 		else if (act === 'II') actFolderName = 'voice-act-two';
 		else if (act === 'III') actFolderName = 'voice-act-three';
 		else actFolderName = `voice-act-${act}`;
-		
+
 		const actDir = path.join(outputDir, actFolderName);
 		if (!fs.existsSync(actDir)) {
 			fs.mkdirSync(actDir, { recursive: true });

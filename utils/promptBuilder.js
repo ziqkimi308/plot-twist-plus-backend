@@ -128,4 +128,38 @@ Make this script engaging, professional, and ready for production. Focus on brin
     return prompt;
 }
 
-export { buildPlotPrompt, buildScriptPrompt };
+function buildImagePrompts(plot, opts = {}) {
+    if (!plot) {
+        throw new Error('Plot parameter is required');
+    }
+    const { style = 'cinematic, highly detailed, dramatic lighting', aspect = '16:9', negative = 'blurry, low quality, text, watermark' } = opts;
+    const clean = (t) => t.replace(/\*\*|__|\*|`/g, '').replace(/\s+/g, ' ').trim();
+    const takeSummary = (t) => {
+        const sentences = clean(t).split(/(?<=[.!?])\s+/).filter(Boolean);
+        const joined = sentences.slice(0, 3).join(' ');
+        return joined.length > 280 ? joined.slice(0, 277) + '...' : joined;
+    };
+    const grab = (regex) => {
+        const m = plot.match(regex);
+        return m ? m[0] : '';
+    };
+    const act1 = grab(/ACT\s*I[\s\S]*?(?=ACT\s*II|$)/i);
+    const act2 = grab(/ACT\s*II[\s\S]*?(?=ACT\s*III|$)/i);
+    const act3 = grab(/ACT\s*III[\s\S]*?$/i);
+    const fallbackSplit = () => {
+        const parts = clean(plot).split(/ACT\s*[I1]{1,3}/i).filter(Boolean);
+        return [parts[0] || plot, parts[1] || plot, parts[2] || plot];
+    };
+    const [a1, a2, a3] = (act1 && act2 && act3) ? [act1, act2, act3] : fallbackSplit();
+    const prompts = [
+        { act: 'I', summary: takeSummary(a1) },
+        { act: 'II', summary: takeSummary(a2) },
+        { act: 'III', summary: takeSummary(a3) }
+    ].map(({ act, summary }) => {
+        const prompt = `${summary}. ${style}`.trim();
+        return { act, prompt, aspect, negative };
+    });
+    return prompts;
+}
+
+export { buildPlotPrompt, buildScriptPrompt, buildImagePrompts };

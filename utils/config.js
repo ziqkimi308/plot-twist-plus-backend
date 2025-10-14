@@ -10,7 +10,8 @@
 export function getAPIConfig() {
     return {
         groqApiKey: process.env.GROQ_API_KEY,
-        cohereApiKey: process.env.COHERE_API_KEY
+        cohereApiKey: process.env.COHERE_API_KEY,
+        huggingfaceApiKey: process.env.HUGGINGFACE_API_KEY
     };
 }
 

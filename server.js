@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import generateImageRouter from './routes/generateImage.js';
 
 // Load environment variables
 dotenv.config();
@@ -20,6 +21,8 @@ app.use('/api/generate-plot', (req, res) => {
 app.use('/api/generate-script', (req, res) => {
     res.json({ message: 'Generate Script endpoint' });
 });
+
+app.use('/api/generate-image', generateImageRouter);
 
 app.use('/api/generate-voice', (req, res) => {
     res.json({ message: 'Generate Voice endpoint' });

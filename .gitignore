@@ -1,1 +1,14 @@
+# Environment variables (contains API keys)
 .env
+
+# Node modules
+node_modules/
+
+# Test files and images
+test-*.js
+test-images/
+test-images-direct/
+
+# OS files
+.DS_Store
+Thumbs.db

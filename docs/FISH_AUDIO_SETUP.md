@@ -1,8 +1,8 @@
-# Fish Audio TTS Setup Guide
+# Fish Audio TTS - NOT FREE FOR API
 
-## ✅ **Fish Audio Added as Secondary TTS Provider!**
+## ❌ **Fish Audio API Requires Premium Subscription**
 
-Fish Audio is now integrated into your TTS system as the **second fallback** option.
+Fish Audio was tested but **API access requires a paid subscription** ($11+/month).
 
 ---
 

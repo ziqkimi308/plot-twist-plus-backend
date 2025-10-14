@@ -6,11 +6,10 @@ Complete guide for Text-to-Speech voice generation system.
 
 ## 🎙️ **Overview**
 
-Your TTS engine uses a **three-tier fallback system**:
+Your TTS engine uses a **two-tier fallback system**:
 
 1. **Primary:** ElevenLabs (high quality, 10k chars/month free)
-2. **Secondary:** Fish Audio (studio quality, 8k credits/month free) ⭐ NEW!
-3. **Tertiary:** Google TTS (free unlimited, basic quality)
+2. **Secondary:** Google TTS (free unlimited, basic quality)
 
 ### ✅ **Automatic Dialogue Extraction**
 - Parses screenplay format (character names in ALL CAPS)

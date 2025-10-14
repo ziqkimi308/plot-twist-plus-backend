@@ -2,8 +2,8 @@
  * PlotTwist+ Text-to-Speech Engine
  * Converts screenplay scripts into audio files using multiple TTS providers with fallback
  * Primary: ElevenLabs (high quality, 10k chars/month free)
- * Secondary: Fish Audio (studio quality, 8k credits/month free)
- * Tertiary: Google TTS (free unlimited, basic quality)
+ * Secondary: Google TTS (free unlimited, basic quality)
+ * Note: Fish Audio API requires premium subscription ($11+/month)
  */
 
 import fetch from 'node-fetch';
@@ -290,43 +290,6 @@ async function generateWithElevenLabs(text, apiKey, options = {}) {
 }
 
 /**
- * Generate TTS audio using Fish Audio API
- * @param {string} text - Text to convert to speech
- * @param {string} apiKey - Fish Audio API key
- * @param {Object} options - Voice options
- * @returns {Promise<Buffer>} Audio buffer (MP3)
- */
-async function generateWithFishAudio(text, apiKey, options = {}) {
-    const {
-        model = 's1',  // Default model: s1 (best quality)
-        format = 'mp3'
-    } = options;
-
-    const url = 'https://api.fish.audio/v1/tts';
-
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            text,
-            format
-        }),
-        timeout: 30000
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Fish Audio API error ${response.status}: ${errorText.slice(0, 200)}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
-}
-
-/**
  * Generate TTS audio using Google TTS (free, unlimited)
  * @param {string} text - Text to convert to speech
  * @param {string} language - Language code (e.g., 'en', 'es')
@@ -374,7 +337,7 @@ async function generateScriptVoices(script, options = {}) {
 
     // Get API config
     const config = getAPIConfig();
-    const { elevenlabsApiKey, fishaudioApiKey } = config;
+    const { elevenlabsApiKey } = config;
 
     // Extract dialogue from script
     let dialogue;
@@ -416,8 +379,8 @@ async function generateScriptVoices(script, options = {}) {
         let audioBuffer = null;
         let providerUsed = null;
 
-        // Try ElevenLabs first if available and not explicitly set to google/fishaudio
-        if (provider !== 'google' && provider !== 'fishaudio' && elevenlabsApiKey) {
+        // Try ElevenLabs first if available and not explicitly set to google
+        if (provider !== 'google' && elevenlabsApiKey) {
             try {
                 // Get voice for this character (or use default)
                 const voiceName = voiceMapping[character] || 'adam';
@@ -432,21 +395,8 @@ async function generateScriptVoices(script, options = {}) {
             }
         }
 
-        // Try Fish Audio if ElevenLabs failed or not available
-        if (!audioBuffer && provider !== 'google' && provider !== 'elevenlabs' && fishaudioApiKey) {
-            try {
-                console.log('   Trying Fish Audio...');
-                audioBuffer = await generateWithFishAudio(line, fishaudioApiKey);
-                providerUsed = 'fishaudio';
-                console.log('   ✅ Fish Audio success');
-                await sleep(1000); // Rate limit courtesy
-            } catch (error) {
-                console.log(`   ❌ Fish Audio failed: ${error.message}`);
-            }
-        }
-
-        // Try Google TTS if both ElevenLabs and Fish Audio failed or not available
-        if (!audioBuffer && provider !== 'elevenlabs' && provider !== 'fishaudio') {
+        // Try Google TTS if ElevenLabs failed or not available
+        if (!audioBuffer && provider !== 'elevenlabs') {
             try {
                 console.log('   Trying Google TTS...');
                 audioBuffer = await generateWithGoogleTTS(line, language);

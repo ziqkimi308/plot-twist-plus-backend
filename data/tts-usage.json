@@ -1,8 +1,99 @@
 {
   "elevenlabs": {
     "currentMonth": "2025-10",
-    "charactersUsed": 0,
-    "requests": [],
+    "charactersUsed": 2343,
+    "requests": [
+      {
+        "timestamp": "2025-10-14T13:04:28.020Z",
+        "characters": 302,
+        "textPreview": "The hospital's gleaming facade belies the turmoil "
+      },
+      {
+        "timestamp": "2025-10-14T13:04:32.468Z",
+        "characters": 274,
+        "textPreview": "John, a 35-year-old nurse with a compassionate hea"
+      },
+      {
+        "timestamp": "2025-10-14T13:04:34.482Z",
+        "characters": 47,
+        "textPreview": "Good morning, Emma. How's the OR running today?"
+      },
+      {
+        "timestamp": "2025-10-14T13:04:38.221Z",
+        "characters": 154,
+        "textPreview": "Emma, her hair tied back in a neat ponytail, smile"
+      },
+      {
+        "timestamp": "2025-10-14T13:04:40.429Z",
+        "characters": 79,
+        "textPreview": "Good morning, John. Just prepping for a scheduled "
+      },
+      {
+        "timestamp": "2025-10-14T13:04:44.224Z",
+        "characters": 175,
+        "textPreview": "As John heads to the ICU, he's assigned to the you"
+      },
+      {
+        "timestamp": "2025-10-14T13:04:47.820Z",
+        "characters": 187,
+        "textPreview": "Sarah lies motionless in her bed, her chest rising"
+      },
+      {
+        "timestamp": "2025-10-14T13:04:50.403Z",
+        "characters": 109,
+        "textPreview": "Sarah, I know you can hear me. We're all rooting f"
+      },
+      {
+        "timestamp": "2025-10-14T13:04:52.828Z",
+        "characters": 95,
+        "textPreview": "As John interacts with Sarah's family, he discover"
+      },
+      {
+        "timestamp": "2025-10-14T13:04:56.091Z",
+        "characters": 164,
+        "textPreview": "John's eyes wander to the security camera in the c"
+      },
+      {
+        "timestamp": "2025-10-14T13:04:58.497Z",
+        "characters": 91,
+        "textPreview": "Dr. Taylor's voice interrupts his thoughts. \"John,"
+      },
+      {
+        "timestamp": "2025-10-14T13:05:00.269Z",
+        "characters": 28,
+        "textPreview": "Of course, Emma. Right away."
+      },
+      {
+        "timestamp": "2025-10-14T13:05:03.495Z",
+        "characters": 165,
+        "textPreview": "Emma's eyes meet John's, and for a fleeting moment"
+      },
+      {
+        "timestamp": "2025-10-14T13:05:05.774Z",
+        "characters": 64,
+        "textPreview": "I'll take it from here, John. You focus on keeping"
+      },
+      {
+        "timestamp": "2025-10-14T13:05:08.950Z",
+        "characters": 95,
+        "textPreview": "As John exits the room, he can't shake the feeling"
+      },
+      {
+        "timestamp": "2025-10-14T13:05:11.910Z",
+        "characters": 148,
+        "textPreview": "Later that evening, while reviewing Sarah's chart,"
+      },
+      {
+        "timestamp": "2025-10-14T13:05:13.613Z",
+        "characters": 21,
+        "textPreview": "What in the world...?"
+      },
+      {
+        "timestamp": "2025-10-14T13:05:17.395Z",
+        "characters": 145,
+        "textPreview": "John's mind reels with questions. What is Project "
+      }
+    ],
     "limit": 10000
   }
 }

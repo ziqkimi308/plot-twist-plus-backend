@@ -64,91 +64,93 @@ const router = express.Router();
  * }
  */
 router.post('/', async (req, res) => {
-    try {
-        const { 
-            script, 
-            includeNarration = false, 
-            narratorVoice = 'john',
-            voiceMapping = {} 
-        } = req.body;
+	try {
+		const {
+			script,
+			includeNarration = false,
+			narratorVoice = 'john',
+			voiceMapping = {}
+		} = req.body;
 
-        // Validate input
-        if (!script || typeof script !== 'string' || script.trim().length === 0) {
-            return res.status(400).json({
-                success: false,
-                error: 'Script is required and must be a non-empty string'
-            });
-        }
+		// Validate input
+		if (!script || typeof script !== 'string' || script.trim().length === 0) {
+			return res.status(400).json({
+				success: false,
+				error: 'Script is required and must be a non-empty string'
+			});
+		}
 
-        console.log('\n=== Voice Generation Request ===');
-        console.log('Script length:', script.length);
-        console.log('Include narration:', includeNarration);
-        console.log('Narrator voice:', narratorVoice);
-        console.log('Voice mapping:', Object.keys(voiceMapping).length, 'characters');
+		console.log('\n=== Voice Generation Request ===');
+		console.log('Script length:', script.length);
+		console.log('Include narration:', includeNarration);
+		console.log('Narrator voice:', narratorVoice);
+		console.log('Voice mapping:', Object.keys(voiceMapping).length, 'characters');
 
-        // Check current usage before generation
-        const usageBeforeStats = getUsageStats();
-        console.log(`\nCurrent ElevenLabs usage: ${usageBeforeStats.used} / ${usageBeforeStats.limit} chars (${usageBeforeStats.percentUsed}%)`);
+		// Check current usage before generation
+		const usageBeforeStats = getUsageStats();
+		console.log(`\nCurrent ElevenLabs usage: ${usageBeforeStats.used} / ${usageBeforeStats.limit} chars (${usageBeforeStats.percentUsed}%)`);
 
-        // Generate output directory path
-        const outputDir = path.join(__dirname, '../voice-output', `session-${Date.now()}`);
+		// Generate output directory path
+		const outputDir = path.join(__dirname, '../voice-output', `session-${Date.now()}`);
 
-        // Generate voice audio
-        const results = await generateScriptVoices(script, {
-            includeNarration,
-            narratorVoice,
-            voiceMapping,
-            outputDir
-        });
+		// Generate voice audio
+		// TEMPORARILY USING GOOGLE TTS TO SAVE API CALLS
+		const results = await generateScriptVoices(script, {
+			includeNarration,
+			narratorVoice,
+			voiceMapping,
+			outputDir,
+			provider: 'google'  // Force Google TTS (free, unlimited)
+		});
 
-        // Get usage stats after generation
-        const usageAfterStats = getUsageStats();
+		// Get usage stats after generation
+		const usageAfterStats = getUsageStats();
 
-        // Calculate statistics
-        const successfulGenerations = results.filter(r => r.success).length;
-        const failedGenerations = results.filter(r => !r.success).length;
-        const providerCounts = results.reduce((acc, r) => {
-            if (r.success && r.provider) {
-                acc[r.provider] = (acc[r.provider] || 0) + 1;
-            }
-            return acc;
-        }, {});
+		// Calculate statistics
+		const successfulGenerations = results.filter(r => r.success).length;
+		const failedGenerations = results.filter(r => !r.success).length;
+		const providerCounts = results.reduce((acc, r) => {
+			if (r.success && r.provider) {
+				acc[r.provider] = (acc[r.provider] || 0) + 1;
+			}
+			return acc;
+		}, {});
 
-        console.log('\nVoice generation completed');
-        console.log('Total lines:', results.length);
-        console.log('Successful:', successfulGenerations);
-        console.log('Failed:', failedGenerations);
-        console.log('Providers used:', JSON.stringify(providerCounts));
-        console.log(`ElevenLabs usage after: ${usageAfterStats.used} / ${usageAfterStats.limit} chars (${usageAfterStats.percentUsed}%)`);
+		console.log('\nVoice generation completed');
+		console.log('Total lines:', results.length);
+		console.log('Successful:', successfulGenerations);
+		console.log('Failed:', failedGenerations);
+		console.log('Providers used:', JSON.stringify(providerCounts));
+		console.log(`ElevenLabs usage after: ${usageAfterStats.used} / ${usageAfterStats.limit} chars (${usageAfterStats.percentUsed}%)`);
 
-        // Return the generated audio data
-        res.json({
-            success: true,
-            audio: results,
-            metadata: {
-                totalLines: results.length,
-                successfulGenerations,
-                failedGenerations,
-                providers: providerCounts,
-                usage: {
-                    used: usageAfterStats.used,
-                    limit: usageAfterStats.limit,
-                    remaining: usageAfterStats.remaining,
-                    percentUsed: usageAfterStats.percentUsed
-                },
-                outputDirectory: outputDir,
-                generatedAt: new Date().toISOString()
-            }
-        });
+		// Return the generated audio data
+		res.json({
+			success: true,
+			audio: results,
+			metadata: {
+				totalLines: results.length,
+				successfulGenerations,
+				failedGenerations,
+				providers: providerCounts,
+				usage: {
+					used: usageAfterStats.used,
+					limit: usageAfterStats.limit,
+					remaining: usageAfterStats.remaining,
+					percentUsed: usageAfterStats.percentUsed
+				},
+				outputDirectory: outputDir,
+				generatedAt: new Date().toISOString()
+			}
+		});
 
-    } catch (error) {
-        console.error('Error generating voice:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message || 'Failed to generate voice audio',
-            timestamp: new Date().toISOString()
-        });
-    }
+	} catch (error) {
+		console.error('Error generating voice:', error);
+		res.status(500).json({
+			success: false,
+			error: error.message || 'Failed to generate voice audio',
+			timestamp: new Date().toISOString()
+		});
+	}
 });
 
 /**
@@ -156,20 +158,20 @@ router.post('/', async (req, res) => {
  * Returns current ElevenLabs TTS usage statistics
  */
 router.get('/usage', (req, res) => {
-    try {
-        const stats = getUsageStats();
-        
-        res.json({
-            success: true,
-            usage: stats
-        });
-    } catch (error) {
-        console.error('Error getting usage stats:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message || 'Failed to get usage statistics'
-        });
-    }
+	try {
+		const stats = getUsageStats();
+
+		res.json({
+			success: true,
+			usage: stats
+		});
+	} catch (error) {
+		console.error('Error getting usage stats:', error);
+		res.status(500).json({
+			success: false,
+			error: error.message || 'Failed to get usage statistics'
+		});
+	}
 });
 
 /**
@@ -177,46 +179,46 @@ router.get('/usage', (req, res) => {
  * Serves generated audio files
  */
 router.get('/audio/:filename', (req, res) => {
-    try {
-        const { filename } = req.params;
-        
-        // Security: prevent directory traversal
-        if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid filename'
-            });
-        }
+	try {
+		const { filename } = req.params;
 
-        // Search in voice-output directory
-        const voiceOutputDir = path.join(__dirname, '../voice-output');
-        
-        // Find the file in subdirectories
-        const sessions = fs.readdirSync(voiceOutputDir);
-        
-        for (const session of sessions) {
-            const sessionPath = path.join(voiceOutputDir, session);
-            if (fs.statSync(sessionPath).isDirectory()) {
-                const filePath = path.join(sessionPath, filename);
-                if (fs.existsSync(filePath)) {
-                    return res.sendFile(filePath);
-                }
-            }
-        }
+		// Security: prevent directory traversal
+		if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+			return res.status(400).json({
+				success: false,
+				error: 'Invalid filename'
+			});
+		}
 
-        // File not found
-        res.status(404).json({
-            success: false,
-            error: 'Audio file not found'
-        });
+		// Search in voice-output directory
+		const voiceOutputDir = path.join(__dirname, '../voice-output');
 
-    } catch (error) {
-        console.error('Error serving audio file:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message || 'Failed to serve audio file'
-        });
-    }
+		// Find the file in subdirectories
+		const sessions = fs.readdirSync(voiceOutputDir);
+
+		for (const session of sessions) {
+			const sessionPath = path.join(voiceOutputDir, session);
+			if (fs.statSync(sessionPath).isDirectory()) {
+				const filePath = path.join(sessionPath, filename);
+				if (fs.existsSync(filePath)) {
+					return res.sendFile(filePath);
+				}
+			}
+		}
+
+		// File not found
+		res.status(404).json({
+			success: false,
+			error: 'Audio file not found'
+		});
+
+	} catch (error) {
+		console.error('Error serving audio file:', error);
+		res.status(500).json({
+			success: false,
+			error: error.message || 'Failed to serve audio file'
+		});
+	}
 });
 
 export default router;

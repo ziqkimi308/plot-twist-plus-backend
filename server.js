@@ -2,6 +2,11 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import generateImageRouter from './routes/generateImage.js';
+import generatePlotRouter from './routes/generatePlot.js';
+import generateScriptRouter from './routes/generateScript.js';
+import generateVoiceRouter from './routes/generateVoice.js';
+import generateSlideshowRouter from './routes/generateSlideshow.js';
+import saveStoryRouter from './routes/saveStory.js';
 
 // Load environment variables
 dotenv.config();
@@ -14,27 +19,16 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-app.use('/api/generate-plot', (req, res) => {
-    res.json({ message: 'Generate Plot endpoint' });
-});
-
-app.use('/api/generate-script', (req, res) => {
-    res.json({ message: 'Generate Script endpoint' });
-});
-
+app.use('/api/generate-plot', generatePlotRouter);
+app.use('/api/generate-script', generateScriptRouter);
 app.use('/api/generate-image', generateImageRouter);
-
-app.use('/api/generate-voice', (req, res) => {
-    res.json({ message: 'Generate Voice endpoint' });
-});
-
-app.use('/api/save-story', (req, res) => {
-    res.json({ message: 'Save Story endpoint' });
-});
+app.use('/api/generate-voice', generateVoiceRouter);
+app.use('/api/generate-slideshow', generateSlideshowRouter);
+app.use('/api/save-story', saveStoryRouter);
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`PlotTwist+ Backend running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+	console.log(`PlotTwist+ Backend running on port ${PORT}`);
+	console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 

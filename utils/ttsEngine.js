@@ -11,6 +11,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { getAPIConfig } from './config.js';
+import { trackElevenLabsUsage, hasQuotaAvailable, getUsageStats } from './usageTracker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -302,9 +303,8 @@ async function generateWithGoogleTTS(text, language = 'en') {
 
     const response = await fetch(url, {
         headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        },
-        timeout: 30000
+            'User-Agent': 'Mozilla/5.0'
+        }
     });
 
     if (!response.ok) {
@@ -381,17 +381,28 @@ async function generateScriptVoices(script, options = {}) {
 
         // Try ElevenLabs first if available and not explicitly set to google
         if (provider !== 'google' && elevenlabsApiKey) {
-            try {
-                // Get voice for this character (or use default)
-                const voiceName = voiceMapping[character] || 'adam';
-                const voice_id = getVoiceId(voiceName);
-                console.log(`   Trying ElevenLabs (voice: ${voiceName})...`);
-                audioBuffer = await generateWithElevenLabs(line, elevenlabsApiKey, { voice_id });
-                providerUsed = 'elevenlabs';
-                console.log(`   ✅ ElevenLabs success`);
-                await sleep(1000); // Rate limit courtesy
-            } catch (error) {
-                console.log(`   ❌ ElevenLabs failed: ${error.message}`);
+            // Check if quota is available
+            const quotaAvailable = hasQuotaAvailable(line.length);
+            
+            if (quotaAvailable) {
+                try {
+                    // Get voice for this character (or use default)
+                    const voiceName = voiceMapping[character] || 'adam';
+                    const voice_id = getVoiceId(voiceName);
+                    console.log(`   Trying ElevenLabs (voice: ${voiceName})...`);
+                    audioBuffer = await generateWithElevenLabs(line, elevenlabsApiKey, { voice_id });
+                    providerUsed = 'elevenlabs';
+                    
+                    // Track usage
+                    trackElevenLabsUsage(line.length, line);
+                    
+                    console.log(`   ✅ ElevenLabs success`);
+                    await sleep(1000); // Rate limit courtesy
+                } catch (error) {
+                    console.log(`   ❌ ElevenLabs failed: ${error.message}`);
+                }
+            } else {
+                console.log(`   ⚠️  ElevenLabs quota exhausted - skipping to fallback`);
             }
         }
 
@@ -437,6 +448,16 @@ async function generateScriptVoices(script, options = {}) {
             });
         }
     }
+
+    // Display usage summary after generation
+    console.log('\n' + '='.repeat(70));
+    const stats = getUsageStats();
+    console.log(`\n📊 ElevenLabs Usage: ${stats.used} / ${stats.limit} chars (${stats.percentUsed}%)`);
+    console.log(`   Remaining: ${stats.remaining} chars (~${stats.estimatedMinutesLeft} min of audio)`);
+    if (stats.percentUsed >= 75) {
+        console.log(`\n💡 TIP: Approaching quota limit. Google TTS will automatically take over.`);
+    }
+    console.log('='.repeat(70) + '\n');
 
     return results;
 }

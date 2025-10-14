@@ -26,6 +26,7 @@ const ELEVENLABS_VOICES = {
     'arnold': 'VR6AewLTigWG4xSOukaG',    // Crisp, resonant male
     'josh': 'TxGEqnHWrfWFTfGW9XjX',      // Young, energetic male
     'sam': 'yoZ06aMxZJJ28mfd3POQ',       // Raspy, dynamic male
+    'nigel': 'adZJnAl6IYZw4EYI9FVd',     // Nigel Graves - Professional narrator (BEST FOR NARRATION)
     
     // Female voices
     'bella': 'EXAVITQu4vr4xnSDxMaL',     // Soft, well-rounded female
@@ -330,7 +331,7 @@ async function generateScriptVoices(script, options = {}) {
         outputDir = path.join(__dirname, '../voice-output'),
         voiceMapping = {}, // Map character names to voice names
         includeNarration = false, // Include action lines as narration
-        narratorVoice = 'arnold' // Voice for narrator (default: deep male)
+        narratorVoice = 'nigel' // Voice for narrator (default: Nigel Graves - professional narrator)
     } = options;
 
     // Get API config

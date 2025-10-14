@@ -89,7 +89,7 @@ function buildScriptPrompt(plot) {
         throw new Error('Plot parameter is required');
     }
 
-    const prompt = `You are a professional screenwriter and dialogue specialist. Convert the following 3-act plot into a compelling script with engaging dialogue, action descriptions, and proper screenplay format.
+    const prompt = `You are a professional screenwriter and audiobook script specialist. Convert the following 3-act plot into a compelling script optimized for voice narration and audiobook production.
 
 PLOT TO CONVERT:
 ${plot}
@@ -97,33 +97,83 @@ ${plot}
 Please create a script that follows these guidelines:
 
 **SCRIPT REQUIREMENTS:**
-- Use proper screenplay format with scene headings, action lines, and dialogue
-- Write engaging, natural dialogue that reveals character and advances the plot
-- Include vivid action descriptions that set the scene and mood
-- Maintain the plot twists and dramatic tension from the original plot
-- Ensure dialogue is appropriate for the genre and character personalities
-- Include character names in dialogue (CHARACTER NAME: "dialogue here")
-- Add scene transitions and pacing notes where appropriate
-- Keep action lines concise but descriptive
-- Make dialogue sound natural and character-specific
-- Preserve all plot twists and revelations in the script format
+- Write for audiobook/voice production (not traditional screenplay)
+- Use NARRATOR for all scene descriptions and action lines
+- Use CHARACTER NAMES for all dialogue
+- Make narration vivid and descriptive for audio listeners
+- Keep dialogue natural and character-specific
+- Preserve all plot twists and dramatic tension
+- Ensure smooth flow between narration and dialogue
 
-**FORMATTING GUIDELINES:**
-- Scene headings: INT./EXT. LOCATION - TIME
-- Action lines: Present tense, third person
-- Character names: ALL CAPS before dialogue
-- Dialogue: In quotes, natural speech patterns
-- Parentheticals: (emotion/action) when needed for clarity
+**CRITICAL FORMATTING RULES FOR VOICE GENERATION:**
+1. **NARRATOR** - Use for ALL scene descriptions, actions, and transitions
+   Example:
+   NARRATOR
+   A dimly lit office. Detective Sarah Chen sits at her desk, examining case files. Rain patters against the window.
+
+2. **CHARACTER NAME** - Use for character dialogue ONLY
+   Example:
+   SARAH CHEN
+   Something doesn't add up here. The timeline is all wrong.
+
+3. **Alternating Pattern** - Always alternate: NARRATOR → DIALOGUE → NARRATOR → DIALOGUE
+   - NEVER put dialogue directly after dialogue without narration
+   - NEVER mix action descriptions with character dialogue
+   - ALWAYS use NARRATOR to describe character actions/emotions
+
+**NARRATOR CONTENT SHOULD INCLUDE:**
+- Scene settings (INT./EXT. descriptions)
+- Character actions and movements
+- Character emotions and expressions
+- Environmental details (sounds, sights, atmosphere)
+- Transitions between scenes
+- Physical descriptions of what's happening
+
+**DIALOGUE CONTENT SHOULD INCLUDE:**
+- Only what the character speaks
+- Natural, conversational language
+- Character-specific speech patterns
+- Emotional tone through words (not stage directions)
 
 **OUTPUT FORMAT:**
-Structure your response as a complete script with:
-1. **FADE IN:**
-2. **ACT I** - Scene headings, action, and dialogue
-3. **ACT II** - Including the midpoint twist in script format
-4. **ACT III** - Including the final twist and resolution
-5. **FADE OUT.**
+Structure your response with clear alternating blocks:
 
-Make this script engaging, professional, and ready for production. Focus on bringing the plot to life through compelling dialogue and vivid action descriptions.`;
+NARRATOR
+[Scene opening - set the location, atmosphere, and initial action]
+
+CHARACTER NAME
+[Their first line of dialogue]
+
+NARRATOR
+[Describe their action, another character's entrance, or scene change]
+
+CHARACTER NAME
+[Next dialogue]
+
+Continue this pattern throughout the entire script.
+
+**EXAMPLE OF CORRECT FORMAT:**
+
+NARRATOR
+Interior. A detective's office at night. Rain hammers against the windows. Detective Sarah Chen sits alone at her desk, surrounded by case files. She frowns at a document.
+
+SARAH CHEN
+Something doesn't add up here. The timeline is completely wrong.
+
+NARRATOR
+The door suddenly bursts open. Detective Marcus Reed rushes in, out of breath, clutching a manila folder.
+
+MARCUS REED
+Sarah! You need to see this right now.
+
+**REMEMBER:**
+- Every action/description = NARRATOR
+- Every spoken word = CHARACTER NAME
+- Keep narration engaging and cinematic
+- Make dialogue natural and character-driven
+- Maintain clear separation for voice actors
+
+Make this script compelling and perfectly formatted for audiobook production with multiple voice actors.`;
 
     return prompt;
 }

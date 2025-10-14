@@ -9,6 +9,10 @@ test-*.js
 test-images/
 test-images-direct/
 
+# Voice output directories
+voice-output/
+voice-demo-output/
+
 # OS files
 .DS_Store
 Thumbs.db

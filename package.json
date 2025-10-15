@@ -10,12 +10,19 @@
     "test": "node test.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "node-fetch": "^3.3.2"
   },
-  "keywords": ["ai", "plot", "script", "generation", "claude", "openai"],
+  "keywords": [
+    "ai",
+    "plot",
+    "script",
+    "generation",
+    "claude",
+    "openai"
+  ],
   "author": "PlotTwist+ Team",
   "license": "MIT"
 }

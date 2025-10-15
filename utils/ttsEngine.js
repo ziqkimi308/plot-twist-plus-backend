@@ -15,6 +15,7 @@ import { trackElevenLabsUsage, hasQuotaAvailable, getUsageStats } from './usageT
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+let googleTTSClientCache = null; // Lazy-loaded Google Cloud TTS client
 
 /**
  * Available ElevenLabs voices (free tier)
@@ -379,6 +380,57 @@ async function generateWithGoogleTTS(text, language = 'en') {
 }
 
 /**
+ * Lazily create a Google Cloud Text-to-Speech client
+ */
+async function getGoogleCloudTTSClient() {
+	if (googleTTSClientCache) return googleTTSClientCache;
+	// Dynamic import to avoid loading dependency when not used
+	const mod = await import('@google-cloud/text-to-speech');
+	googleTTSClientCache = new mod.TextToSpeechClient();
+	return googleTTSClientCache;
+}
+
+/**
+ * Generate TTS audio using Google Cloud Text-to-Speech
+ * @param {string} text
+ * @param {Object} opts
+ * @param {string} opts.languageCode e.g., 'en-US'
+ * @param {string} opts.voiceName e.g., 'en-US-Neural2-D'
+ * @param {number} opts.speakingRate default 1.0
+ * @param {number} opts.pitch default 0.0
+ * @returns {Promise<Buffer>} MP3 audio buffer
+ */
+async function generateWithGoogleCloudTTS(text, {
+	languageCode = 'en-US',
+	voiceName = 'en-US-Neural2-D',
+	speakingRate = 1.0,
+	pitch = 0.0
+} = {}) {
+	const client = await getGoogleCloudTTSClient();
+	const [response] = await client.synthesizeSpeech({
+		input: { text },
+		voice: { languageCode, name: voiceName },
+		audioConfig: {
+			audioEncoding: 'MP3',
+			speakingRate,
+			pitch
+		}
+	});
+	return Buffer.from(response.audioContent, 'base64');
+}
+
+/**
+ * Infer languageCode from a Google Cloud TTS voice name
+ * Example: 'en-US-Neural2-D' -> 'en-US'
+ */
+function languageCodeFromVoiceName(voiceName, fallback = 'en-US') {
+	if (typeof voiceName !== 'string') return fallback;
+	const parts = voiceName.split('-');
+	if (parts.length >= 2) return `${parts[0]}-${parts[1]}`;
+	return fallback;
+}
+
+/**
  * Generate audio for all dialogue in script with fallback
  * @param {string} script - Full screenplay script
  * @param {Object} options - Generation options
@@ -461,8 +513,43 @@ export async function generateScriptVoices(options = {}) {
 		let audioBuffer = null;
 		let providerUsed = null;
 
-		// Try ElevenLabs first if available and not explicitly set to google
-		if (provider !== 'google' && elevenlabsApiKey) {
+		// Google Cloud TTS path (explicit provider)
+		if (!audioBuffer && provider === 'google-cloud-tts') {
+			try {
+				const gcVoiceName = voiceMapping[character]
+					|| (character === 'NARRATOR' ? 'en-US-Studio-O' : 'en-US-Neural2-D');
+				const languageCode = languageCodeFromVoiceName(gcVoiceName, 'en-US');
+				console.log(`   Trying Google Cloud TTS (voice: ${gcVoiceName})...`);
+				// Chunk very long inputs for safety (API handles up to ~5000 chars)
+				const maxLen = 4500;
+				if (line.length > maxLen) {
+					const chunks = [];
+					for (let start = 0; start < line.length; start += maxLen) {
+						const chunk = line.substring(start, start + maxLen);
+						const buf = await generateWithGoogleCloudTTS(chunk, {
+							languageCode,
+							voiceName: gcVoiceName
+						});
+						chunks.push(buf);
+						await sleep(250);
+					}
+					audioBuffer = Buffer.concat(chunks);
+				} else {
+					audioBuffer = await generateWithGoogleCloudTTS(line, {
+						languageCode,
+						voiceName: gcVoiceName
+					});
+				}
+				providerUsed = 'google-cloud-tts';
+				console.log('   ✅ Google Cloud TTS success');
+				await sleep(500);
+			} catch (error) {
+				console.log(`   ❌ Google Cloud TTS failed: ${error.message}`);
+			}
+		}
+
+		// Try ElevenLabs first if available and not explicitly set to google or google-cloud-tts
+		if (!audioBuffer && provider !== 'google' && provider !== 'google-cloud-tts' && elevenlabsApiKey) {
 			const quotaAvailable = hasQuotaAvailable(line.length);
 			if (quotaAvailable) {
 				try {
@@ -482,7 +569,7 @@ export async function generateScriptVoices(options = {}) {
 			}
 		}
 
-		// Try Google TTS if ElevenLabs failed or not available
+		// Try Google Translate TTS if nothing else worked and provider allows
 		if (!audioBuffer && provider !== 'elevenlabs') {
 			try {
 				console.log('   Trying Google TTS...');

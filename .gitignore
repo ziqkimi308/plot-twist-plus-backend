@@ -12,3 +12,6 @@ data/voice/
 # OS files
 .DS_Store
 Thumbs.db
+
+secret
+secret/plot-twist-plus-2797876555d2.json

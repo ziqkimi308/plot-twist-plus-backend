@@ -1,28 +1,29 @@
 {
-  "name": "plot-twist-plus-backend",
-  "version": "1.0.0",
-  "type": "module",
-  "description": "Backend for PlotTwist+ - AI-powered plot and script generation",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
-    "test": "node test.js"
-  },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "node-fetch": "^3.3.2"
-  },
-  "keywords": [
-    "ai",
-    "plot",
-    "script",
-    "generation",
-    "claude",
-    "openai"
-  ],
-  "author": "PlotTwist+ Team",
-  "license": "MIT"
+	"name": "plot-twist-plus-backend",
+	"version": "1.0.0",
+	"type": "module",
+	"description": "Backend for PlotTwist+ - AI-powered plot and script generation",
+	"main": "server.js",
+	"scripts": {
+		"start": "node server.js",
+		"dev": "node server.js",
+		"test": "node test.js"
+	},
+	"dependencies": {
+		"cors": "^2.8.5",
+		"dotenv": "^16.3.1",
+		"express": "^4.18.2",
+		"node-fetch": "^3.3.2",
+		"@google-cloud/text-to-speech": "^5.4.0"
+	},
+	"keywords": [
+		"ai",
+		"plot",
+		"script",
+		"generation",
+		"claude",
+		"openai"
+	],
+	"author": "PlotTwist+ Team",
+	"license": "MIT"
 }

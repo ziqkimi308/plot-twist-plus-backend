@@ -46,6 +46,7 @@ function clearVoiceSessions(voiceOutputDir) {
  *     {
  *       "CHARACTER_NAME": "voiceName" // e.g., { "SARAH": "rachel", "MARCUS": "josh" }
  *     }
+ *   "provider": "elevenlabs | google | google-cloud-tts" (optional) - Overrides env TTS_PROVIDER
  * }
  * 
  * Response:
@@ -87,7 +88,8 @@ router.post('/', async (req, res) => {
 			script,
 			includeNarration = false,
 			narratorVoice = 'john',
-			voiceMapping = {}
+			voiceMapping = {},
+			provider: providerOverride
 		} = req.body;
 
 		// Note: script parameter is optional - generateScriptVoices loads from disk
@@ -110,7 +112,7 @@ router.post('/', async (req, res) => {
 
 		// Generate voice audio (loads script from data/script folder)
 		// Provider selection via env (default: google to save API calls)
-		const provider = process.env.TTS_PROVIDER || 'google';
+		const provider = providerOverride || process.env.TTS_PROVIDER || 'google';
 		const results = await generateScriptVoices({
 			includeNarration,
 			narratorVoice,

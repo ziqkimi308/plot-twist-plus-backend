@@ -562,156 +562,42 @@ export async function generateScriptVoices(options = {}) {
 		console.log('Auto voice mapping applied:', autoMapping);
 	}
 
-	const results = [];
-
-	// Process each dialogue element (acts are already tagged during extraction)
-	for (let i = 0; i < dialogue.length; i++) {
-		const { character, line, order, act } = dialogue[i];
-
-		// Map act to folder name: ONE -> voice-act-one, TWO -> voice-act-two, THREE -> voice-act-three
-		let actFolderName;
-		if (act === 'ONE') actFolderName = 'voice-act-one';
-		else if (act === 'TWO') actFolderName = 'voice-act-two';
-		else if (act === 'THREE') actFolderName = 'voice-act-three';
-		else actFolderName = `voice-act-${act.toLowerCase()}`;
-
-		const actDir = path.join(outputDir, actFolderName);
-		if (!fs.existsSync(actDir)) {
-			fs.mkdirSync(actDir, { recursive: true });
+	// Create act directories first
+	const actDirs = {
+		'ONE': path.join(outputDir, 'voice-act-one'),
+		'TWO': path.join(outputDir, 'voice-act-two'),
+		'THREE': path.join(outputDir, 'voice-act-three')
+	};
+	Object.values(actDirs).forEach(dir => {
+		if (!fs.existsSync(dir)) {
+			fs.mkdirSync(dir, { recursive: true });
 		}
-		// console.log(`   Act ${act}: ${actDir}`);
+	});
 
-		let audioBuffer = null;
-		let providerUsed = null;
-		let chosenVoiceName = null;
-
-		// Google Cloud TTS path (explicit provider)
-		if (!audioBuffer && provider === 'google-cloud-tts') {
-			try {
-				const key = String(character).toUpperCase();
-				const gcVoiceName = mappingUpper[key]
-					|| (key === 'NARRATOR' ? gcpNarrator : 'en-US-Neural2-D');
-				const languageCode = languageCodeFromVoiceName(gcVoiceName, 'en-US');
-				console.log(`   Trying Google Cloud TTS (voice: ${gcVoiceName})...`);
-				chosenVoiceName = gcVoiceName;
-				// Chunk very long inputs for safety (API handles up to ~5000 chars)
-				const maxLen = 4500;
-				if (line.length > maxLen) {
-					const chunks = [];
-					for (let start = 0; start < line.length; start += maxLen) {
-						const chunk = line.substring(start, start + maxLen);
-						const gcOpts = { languageCode, voiceName: gcVoiceName };
-						if (key === 'NARRATOR') {
-							gcOpts.speakingRate = gcpNarratorSettings.speakingRate;
-							gcOpts.pitch = gcpNarratorSettings.pitch;
-						}
-						const buf = await generateWithGoogleCloudTTS(chunk, gcOpts);
-						chunks.push(buf);
-						await sleep(250);
-					}
-					audioBuffer = Buffer.concat(chunks);
-				} else {
-					const gcOpts = { languageCode, voiceName: gcVoiceName };
-					if (key === 'NARRATOR') {
-						gcOpts.speakingRate = gcpNarratorSettings.speakingRate;
-						gcOpts.pitch = gcpNarratorSettings.pitch;
-					}
-					audioBuffer = await generateWithGoogleCloudTTS(line, gcOpts);
-				}
-				providerUsed = 'google-cloud-tts';
-				console.log('   ✅ Google Cloud TTS success');
-				await sleep(500);
-			} catch (error) {
-				console.log(`   ❌ Google Cloud TTS failed: ${error.message}`);
+	// Generate all voices in PARALLEL for speed
+	console.log(`\n🎙️  Generating ${dialogue.length} voice clips in parallel...`);
+	console.log(`   Provider: ${provider}`);
+	console.log(`   This should be much faster than sequential processing!\n`);
+	
+	const voicePromises = dialogue.map((dialogueItem, index) => 
+		generateSingleVoice(
+			dialogueItem,
+			index,
+			{
+				provider,
+				language,
+				outputDir,
+				mappingUpper,
+				gcpNarrator,
+				gcpNarratorSettings,
+				elevenlabsApiKey,
+				config
 			}
-		}
-
-		// Try ElevenLabs if available
-		// - In 'auto' mode, it runs first.
-		// - In 'google-cloud-tts' mode, it runs as a fallback if GCP fails.
-		// - Skipped only when provider is explicitly 'google'.
-		if (!audioBuffer && provider !== 'google' && elevenlabsApiKey) {
-			const quotaAvailable = hasQuotaAvailable(line.length);
-			if (quotaAvailable) {
-				try {
-					const key = String(character).toUpperCase();
-					const voiceName = mappingUpper[key] || (key === 'NARRATOR' ? 'john' : 'adam');
-					const voice_id = getVoiceId(voiceName);
-					console.log(`   Trying ElevenLabs (voice: ${voiceName})...`);
-					chosenVoiceName = voiceName;
-					audioBuffer = await generateWithElevenLabs(line, elevenlabsApiKey, { voice_id });
-					providerUsed = 'elevenlabs';
-					trackElevenLabsUsage(line.length, line);
-					console.log(`   ✅ ElevenLabs success`);
-					await sleep(1000);
-				} catch (error) {
-					console.log(`   ❌ ElevenLabs failed: ${error.message}`);
-				}
-			} else {
-				console.log(`   ⚠️  ElevenLabs quota exhausted - skipping to fallback`);
-			}
-		}
-
-		// Try Google Translate TTS if nothing else worked and provider allows
-		if (!audioBuffer && provider !== 'elevenlabs') {
-			try {
-				console.log('   Trying Google TTS...');
-				// Split long lines into chunks of 200 chars for Google TTS
-				const maxLen = 200;
-				let buffers = [];
-				if (line.length > maxLen) {
-					for (let start = 0; start < line.length; start += maxLen) {
-						const chunk = line.substring(start, start + maxLen);
-						const buf = await generateWithGoogleTTS(chunk, language);
-						buffers.push(buf);
-						await sleep(250); // Small delay between chunks
-					}
-					audioBuffer = Buffer.concat(buffers);
-				} else {
-					audioBuffer = await generateWithGoogleTTS(line, language);
-				}
-				providerUsed = 'google';
-				chosenVoiceName = `translate:${language}`;
-				console.log('   ✅ Google TTS success');
-				await sleep(500);
-			} catch (error) {
-				console.log(`   ❌ Google TTS failed: ${error.message}`);
-			}
-		}
-
-		// Save audio file
-		if (audioBuffer) {
-			const filename = `${String(order).padStart(3, '0')}_${character.replace(/\s+/g, '_')}.mp3`;
-			const filepath = path.join(actDir, filename);
-			fs.writeFileSync(filepath, audioBuffer);
-
-			results.push({
-				character,
-				line,
-				order,
-				act,
-				audioFile: filename,
-				audioPath: filepath,
-				audioUrl: `/api/generate-voice/audio/${actFolderName}/${filename}`,
-				provider: providerUsed,
-				voice: chosenVoiceName,
-				success: true,
-				sizeKB: (audioBuffer.length / 1024).toFixed(2)
-			});
-		} else {
-			console.log('   ⚠️  All TTS providers failed, skipping...');
-			results.push({
-				character,
-				line,
-				order,
-				act,
-				audioFile: null,
-				provider: 'none',
-				success: true,
-				error: 'All TTS providers failed'
-			});
-		}
-	}
+		)
+	);
+	
+	const results = await Promise.all(voicePromises);
+	console.log(`\n✅ All ${results.length} voice clips generated!`);
 
 	// Display usage summary after generation
 	console.log('\n' + '='.repeat(70));
@@ -724,6 +610,164 @@ export async function generateScriptVoices(options = {}) {
 	console.log('='.repeat(70) + '\n');
 
 	return results;
+}
+
+/**
+ * Generate a single voice clip (extracted for parallel processing)
+ */
+async function generateSingleVoice(dialogueItem, index, options) {
+	const { character, line, order, act } = dialogueItem;
+	const {
+		provider,
+		language,
+		outputDir,
+		mappingUpper,
+		gcpNarrator,
+		gcpNarratorSettings,
+		elevenlabsApiKey
+	} = options;
+
+	// Map act to folder name
+	let actFolderName;
+	if (act === 'ONE') actFolderName = 'voice-act-one';
+	else if (act === 'TWO') actFolderName = 'voice-act-two';
+	else if (act === 'THREE') actFolderName = 'voice-act-three';
+	else actFolderName = `voice-act-${act.toLowerCase()}`;
+
+	const actDir = path.join(outputDir, actFolderName);
+
+	let audioBuffer = null;
+	let providerUsed = null;
+	let chosenVoiceName = null;
+
+	console.log(`📢 [${index + 1}] Processing: ${character} (Act ${act}, Order ${order})`);
+
+	// Google Cloud TTS path (explicit provider)
+	if (!audioBuffer && provider === 'google-cloud-tts') {
+		try {
+			const key = String(character).toUpperCase();
+			const gcVoiceName = mappingUpper[key]
+				|| (key === 'NARRATOR' ? gcpNarrator : 'en-US-Neural2-D');
+			const languageCode = languageCodeFromVoiceName(gcVoiceName, 'en-US');
+			
+			if (key === 'NARRATOR') {
+				console.log(`   🔊 [${index + 1}] NARRATOR - Voice: ${gcVoiceName}, Pitch: ${gcpNarratorSettings.pitch}, Rate: ${gcpNarratorSettings.speakingRate}`);
+			} else {
+				console.log(`   🎙️  [${index + 1}] Voice: ${gcVoiceName}`);
+			}
+			
+			chosenVoiceName = gcVoiceName;
+			// Chunk very long inputs for safety (API handles up to ~5000 chars)
+			const maxLen = 4500;
+			if (line.length > maxLen) {
+				const chunks = [];
+				for (let start = 0; start < line.length; start += maxLen) {
+					const chunk = line.substring(start, start + maxLen);
+					const gcOpts = { languageCode, voiceName: gcVoiceName };
+					if (key === 'NARRATOR') {
+						gcOpts.speakingRate = gcpNarratorSettings.speakingRate;
+						gcOpts.pitch = gcpNarratorSettings.pitch;
+					}
+					const buf = await generateWithGoogleCloudTTS(chunk, gcOpts);
+					chunks.push(buf);
+					await sleep(250);
+				}
+				audioBuffer = Buffer.concat(chunks);
+			} else {
+				const gcOpts = { languageCode, voiceName: gcVoiceName };
+				if (key === 'NARRATOR') {
+					gcOpts.speakingRate = gcpNarratorSettings.speakingRate;
+					gcOpts.pitch = gcpNarratorSettings.pitch;
+				}
+				audioBuffer = await generateWithGoogleCloudTTS(line, gcOpts);
+			}
+			providerUsed = 'google-cloud-tts';
+			console.log(`   ✅ [${index + 1}] Google Cloud TTS success`);
+		} catch (error) {
+			console.log(`   ❌ [${index + 1}] Google Cloud TTS failed: ${error.message}`);
+		}
+	}
+
+	// Try ElevenLabs if available
+	if (!audioBuffer && provider !== 'google' && elevenlabsApiKey) {
+		const quotaAvailable = hasQuotaAvailable(line.length);
+		if (quotaAvailable) {
+			try {
+				const key = String(character).toUpperCase();
+				const voiceName = mappingUpper[key] || (key === 'NARRATOR' ? 'john' : 'adam');
+				const voice_id = getVoiceId(voiceName);
+				console.log(`   🎤 [${index + 1}] Trying ElevenLabs (${voiceName})...`);
+				chosenVoiceName = voiceName;
+				audioBuffer = await generateWithElevenLabs(line, elevenlabsApiKey, { voice_id });
+				providerUsed = 'elevenlabs';
+				trackElevenLabsUsage(line.length, line);
+				console.log(`   ✅ [${index + 1}] ElevenLabs success`);
+			} catch (error) {
+				console.log(`   ❌ [${index + 1}] ElevenLabs failed: ${error.message}`);
+			}
+		} else {
+			console.log(`   ⚠️  [${index + 1}] ElevenLabs quota exhausted`);
+		}
+	}
+
+	// Try Google Translate TTS if nothing else worked
+	if (!audioBuffer && provider !== 'elevenlabs') {
+		try {
+			console.log(`   🌐 [${index + 1}] Trying Google Translate TTS...`);
+			const maxLen = 200;
+			let buffers = [];
+			if (line.length > maxLen) {
+				for (let start = 0; start < line.length; start += maxLen) {
+					const chunk = line.substring(start, start + maxLen);
+					const buf = await generateWithGoogleTTS(chunk, language);
+					buffers.push(buf);
+					await sleep(250);
+				}
+				audioBuffer = Buffer.concat(buffers);
+			} else {
+				audioBuffer = await generateWithGoogleTTS(line, language);
+			}
+			providerUsed = 'google';
+			chosenVoiceName = `translate:${language}`;
+			console.log(`   ✅ [${index + 1}] Google Translate TTS success`);
+		} catch (error) {
+			console.log(`   ❌ [${index + 1}] Google Translate TTS failed: ${error.message}`);
+		}
+	}
+
+	// Save audio file
+	if (audioBuffer) {
+		const filename = `${String(order).padStart(3, '0')}_${character.replace(/\s+/g, '_')}.mp3`;
+		const filepath = path.join(actDir, filename);
+		fs.writeFileSync(filepath, audioBuffer);
+		console.log(`   💾 [${index + 1}] Saved: ${filename}`);
+
+		return {
+			character,
+			line,
+			order,
+			act,
+			audioFile: filename,
+			audioPath: filepath,
+			audioUrl: `/api/generate-voice/audio/${actFolderName}/${filename}`,
+			provider: providerUsed,
+			voice: chosenVoiceName,
+			success: true,
+			sizeKB: (audioBuffer.length / 1024).toFixed(2)
+		};
+	} else {
+		console.log(`   ⚠️  [${index + 1}] All TTS providers failed`);
+		return {
+			character,
+			line,
+			order,
+			act,
+			audioFile: null,
+			provider: 'none',
+			success: false,
+			error: 'All TTS providers failed'
+		};
+	}
 }
 
 /**

@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import generateImageRouter from './routes/generateImage.js';
 import generatePlotRouter from './routes/generatePlot.js';
 import generateScriptRouter from './routes/generateScript.js';
@@ -19,6 +20,19 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Configure Google Cloud TTS credentials automatically if available
+try {
+	if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+		const credsPath = path.join(__dirname, 'secret', 'plot-twist-plus-2797876555d2.json');
+		if (fs.existsSync(credsPath)) {
+			process.env.GOOGLE_APPLICATION_CREDENTIALS = credsPath;
+			console.log('Using Google Cloud credentials at', credsPath);
+		}
+	}
+} catch (e) {
+	// non-fatal
+}
 
 // Middleware
 app.use(cors());

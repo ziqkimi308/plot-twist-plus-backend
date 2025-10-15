@@ -1,28 +1,57 @@
 # PlotTwist+ Voice Reference Guide
 
+## 🎙️ Default narrator is male
+
+- Narrator voice defaults to a deep male:
+  - If Google Cloud TTS is used: **en-US-Wavenet-D** (VERY DEEP male narrator) with extreme settings (pitch -10.0, speakingRate 0.82)
+  - If ElevenLabs is used: "john" (deep male narrator)
+- You can override by sending in the request body:
+  - voiceMapping: { "NARRATOR": "john" } or a GCP voice like "en-US-Wavenet-D"
+  - provider: "google-cloud-tts" to force GCP voices
+
+### Quick override example
+
+```js
+await fetch("/api/generate-voice", {
+	method: "POST",
+	headers: { "Content-Type": "application/json" },
+	body: JSON.stringify({
+		includeNarration: true,
+		provider: "google-cloud-tts",
+		voiceMapping: { NARRATOR: "en-US-Wavenet-D" }, // VERY deep male + pitch -10, rate 0.82 auto-applied
+	}),
+});
+```
+
+### Notes
+
+- Backend default provider is google-cloud-tts to keep narrator male by default.
+- If ElevenLabs quota is available, it will be used (narrator="john").
+- If both providers fail, it falls back to basic Google Translate TTS (single neutral voice).
+
 ## 🎙️ **Available ElevenLabs Voices**
 
 ### **Male Voices**
 
-| Name | Voice ID | Description | Best For |
-|------|----------|-------------|----------|
-| **john** ⭐ | `EiNlNiXeDU1pqqOPrYMO` | John Doe - Deep narrator | **NARRATOR (Default)** |
-| **josh** ✅ | `TxGEqnHWrfWFTfGW9XjX` | Young, energetic | Marcus-type characters |
-| **nigel** | `adZJnAl6IYZw4EYI9FVd` | Nigel Graves - Professional | Main characters |
-| **adam** | `pNInz6obpgDQGcFmaJgB` | Deep, mature | Older characters |
-| **antoni** | `ErXwobaYiN019PkySvjV` | Well-rounded | Balanced characters |
-| **arnold** | `VR6AewLTigWG4xSOukaG` | Crisp, resonant | Authority figures |
-| **sam** | `yoZ06aMxZJJ28mfd3POQ` | Raspy, dynamic | Mysterious/rough |
+| Name        | Voice ID               | Description                 | Best For               |
+| ----------- | ---------------------- | --------------------------- | ---------------------- |
+| **john** ⭐ | `EiNlNiXeDU1pqqOPrYMO` | John Doe - Deep narrator    | **NARRATOR (Default)** |
+| **josh** ✅ | `TxGEqnHWrfWFTfGW9XjX` | Young, energetic            | Marcus-type characters |
+| **nigel**   | `adZJnAl6IYZw4EYI9FVd` | Nigel Graves - Professional | Main characters        |
+| **adam**    | `pNInz6obpgDQGcFmaJgB` | Deep, mature                | Older characters       |
+| **antoni**  | `ErXwobaYiN019PkySvjV` | Well-rounded                | Balanced characters    |
+| **arnold**  | `VR6AewLTigWG4xSOukaG` | Crisp, resonant             | Authority figures      |
+| **sam**     | `yoZ06aMxZJJ28mfd3POQ` | Raspy, dynamic              | Mysterious/rough       |
 
 ### **Female Voices**
 
-| Name | Voice ID | Description | Best For |
-|------|----------|-------------|----------|
-| **rachel** | `21m00Tcm4TlvDq8ikWAM` | Calm, articulate | Female leads/detectives |
-| **bella** | `EXAVITQu4vr4xnSDxMaL` | Soft, well-rounded | Gentle characters |
-| **elli** | `MF3mGyEYCl7XYWbV9V6O` | Emotional, expressive | Dramatic characters |
-| **domi** | `AZnzlk1XvdvUeBnXmlld` | Strong, confident | Powerful women |
-| **dorothy** | `ThT5KcBeYPX3keUQqHPh` | Pleasant, conversational | Friendly characters |
+| Name        | Voice ID               | Description              | Best For                |
+| ----------- | ---------------------- | ------------------------ | ----------------------- |
+| **rachel**  | `21m00Tcm4TlvDq8ikWAM` | Calm, articulate         | Female leads/detectives |
+| **bella**   | `EXAVITQu4vr4xnSDxMaL` | Soft, well-rounded       | Gentle characters       |
+| **elli**    | `MF3mGyEYCl7XYWbV9V6O` | Emotional, expressive    | Dramatic characters     |
+| **domi**    | `AZnzlk1XvdvUeBnXmlld` | Strong, confident        | Powerful women          |
+| **dorothy** | `ThT5KcBeYPX3keUQqHPh` | Pleasant, conversational | Friendly characters     |
 
 ---
 
@@ -31,8 +60,8 @@
 ```javascript
 // Default configuration
 const defaultVoices = {
-    NARRATOR: 'john',      // John Doe - Deep narrator
-    DEFAULT: 'adam'        // Fallback for unmapped characters
+	NARRATOR: "john", // John Doe - Deep narrator
+	DEFAULT: "adam", // Fallback for unmapped characters
 };
 ```
 
@@ -41,46 +70,50 @@ const defaultVoices = {
 ## 🎭 **Recommended Voice Mappings**
 
 ### **Detective Story**
+
 ```javascript
 const voiceMapping = {
-    'NARRATOR': 'john',           // Deep narrator
-    'DETECTIVE SARAH': 'rachel',  // Calm female
-    'DETECTIVE MARCUS': 'josh',   // Young energetic ✅
-    'SUSPECT': 'nigel',           // Professional
-    'WITNESS': 'bella'            // Soft female
+	NARRATOR: "john", // Deep narrator
+	"DETECTIVE SARAH": "rachel", // Calm female
+	"DETECTIVE MARCUS": "josh", // Young energetic ✅
+	SUSPECT: "nigel", // Professional
+	WITNESS: "bella", // Soft female
 };
 ```
 
 ### **Action Thriller**
+
 ```javascript
 const voiceMapping = {
-    'NARRATOR': 'john',      // Deep narrator
-    'HERO': 'arnold',        // Powerful
-    'VILLAIN': 'sam',        // Raspy
-    'ALLY': 'josh',          // Energetic ✅
-    'FEMALE LEAD': 'domi'    // Strong
+	NARRATOR: "john", // Deep narrator
+	HERO: "arnold", // Powerful
+	VILLAIN: "sam", // Raspy
+	ALLY: "josh", // Energetic ✅
+	"FEMALE LEAD": "domi", // Strong
 };
 ```
 
 ### **Drama/Romance**
+
 ```javascript
 const voiceMapping = {
-    'NARRATOR': 'john',      // Deep narrator
-    'MALE LEAD': 'nigel',    // Professional
-    'FEMALE LEAD': 'rachel', // Calm
-    'BEST FRIEND': 'josh',   // Energetic ✅
-    'RIVAL': 'elli'          // Expressive
+	NARRATOR: "john", // Deep narrator
+	"MALE LEAD": "nigel", // Professional
+	"FEMALE LEAD": "rachel", // Calm
+	"BEST FRIEND": "josh", // Energetic ✅
+	RIVAL: "elli", // Expressive
 };
 ```
 
 ### **Mystery**
+
 ```javascript
 const voiceMapping = {
-    'NARRATOR': 'john',           // Deep narrator
-    'INVESTIGATOR': 'nigel',      // Professional
-    'VICTIM': 'bella',            // Soft
-    'DETECTIVE MARCUS': 'josh',   // Young energetic ✅
-    'KILLER': 'sam'               // Mysterious
+	NARRATOR: "john", // Deep narrator
+	INVESTIGATOR: "nigel", // Professional
+	VICTIM: "bella", // Soft
+	"DETECTIVE MARCUS": "josh", // Young energetic ✅
+	KILLER: "sam", // Mysterious
 };
 ```
 
@@ -89,42 +122,45 @@ const voiceMapping = {
 ## 💡 **Usage Examples**
 
 ### **Example 1: Simple (Default Narrator)**
+
 ```javascript
 await generateScriptVoices(script, {
-    includeNarration: true,
-    voiceMapping: {
-        'SARAH CHEN': 'rachel',
-        'MARCUS REED': 'josh'
-    }
-    // NARRATOR automatically uses 'john' (default)
+	includeNarration: true,
+	voiceMapping: {
+		"SARAH CHEN": "rachel",
+		"MARCUS REED": "josh",
+	},
+	// NARRATOR automatically uses 'john' (default)
 });
 ```
 
 ### **Example 2: Custom Narrator**
+
 ```javascript
 await generateScriptVoices(script, {
-    includeNarration: true,
-    narratorVoice: 'nigel',  // Override default
-    voiceMapping: {
-        'NARRATOR': 'nigel',
-        'SARAH': 'rachel',
-        'MARCUS': 'josh'
-    }
+	includeNarration: true,
+	narratorVoice: "nigel", // Override default
+	voiceMapping: {
+		NARRATOR: "nigel",
+		SARAH: "rachel",
+		MARCUS: "josh",
+	},
 });
 ```
 
 ### **Example 3: Multiple Characters**
+
 ```javascript
 await generateScriptVoices(script, {
-    includeNarration: true,
-    voiceMapping: {
-        'NARRATOR': 'john',      // Deep narrator
-        'HERO': 'nigel',         // Professional male
-        'SIDEKICK': 'josh',      // Young energetic ✅
-        'FEMALE LEAD': 'rachel', // Calm female
-        'VILLAIN': 'sam',        // Raspy
-        'ASSISTANT': 'bella'     // Soft female
-    }
+	includeNarration: true,
+	voiceMapping: {
+		NARRATOR: "john", // Deep narrator
+		HERO: "nigel", // Professional male
+		SIDEKICK: "josh", // Young energetic ✅
+		"FEMALE LEAD": "rachel", // Calm female
+		VILLAIN: "sam", // Raspy
+		ASSISTANT: "bella", // Soft female
+	},
 });
 ```
 
@@ -135,29 +171,34 @@ await generateScriptVoices(script, {
 ### **When to Use Each Voice:**
 
 **John (Narrator):**
+
 - ✅ Narration/Action descriptions
 - ✅ Scene settings
 - ✅ Deep, authoritative voice
 
 **Josh (Energetic):**
+
 - ✅ Young protagonists
 - ✅ Enthusiastic sidekicks
 - ✅ Energetic characters like Marcus
 - ✅ Action heroes
 
 **Nigel (Professional):**
+
 - ✅ Main protagonists
 - ✅ Professional characters
 - ✅ Intelligent/sophisticated roles
 - ✅ Business/corporate characters
 
 **Rachel (Female Lead):**
+
 - ✅ Female detectives
 - ✅ Professional women
 - ✅ Calm protagonists
 - ✅ Leaders
 
 **Sam (Mysterious):**
+
 - ✅ Villains
 - ✅ Mysterious characters
 - ✅ Rough/tough personalities
@@ -170,14 +211,14 @@ await generateScriptVoices(script, {
 ```javascript
 // Custom voice settings for ElevenLabs
 await generateScriptVoices(script, {
-    voiceMapping: {
-        'CHARACTER': 'josh'
-    },
-    // Advanced: Override voice settings
-    voiceSettings: {
-        stability: 0.5,          // 0-1 (higher = more stable)
-        similarity_boost: 0.75   // 0-1 (higher = more similar to original)
-    }
+	voiceMapping: {
+		CHARACTER: "josh",
+	},
+	// Advanced: Override voice settings
+	voiceSettings: {
+		stability: 0.5, // 0-1 (higher = more stable)
+		similarity_boost: 0.75, // 0-1 (higher = more similar to original)
+	},
 });
 ```
 
@@ -185,16 +226,16 @@ await generateScriptVoices(script, {
 
 ## 📊 **Voice Comparison**
 
-| Use Case | Best Voice | Alternative |
-|----------|------------|-------------|
-| **Narrator** | john ⭐ | nigel |
-| **Young Hero** | josh ✅ | antoni |
-| **Female Lead** | rachel | domi |
-| **Villain** | sam | arnold |
-| **Professional** | nigel | adam |
-| **Energetic** | josh ✅ | antoni |
-| **Authority** | arnold | adam |
-| **Gentle** | bella | dorothy |
+| Use Case         | Best Voice | Alternative |
+| ---------------- | ---------- | ----------- |
+| **Narrator**     | john ⭐    | nigel       |
+| **Young Hero**   | josh ✅    | antoni      |
+| **Female Lead**  | rachel     | domi        |
+| **Villain**      | sam        | arnold      |
+| **Professional** | nigel      | adam        |
+| **Energetic**    | josh ✅    | antoni      |
+| **Authority**    | arnold     | adam        |
+| **Gentle**       | bella      | dorothy     |
 
 ---
 
@@ -203,16 +244,16 @@ await generateScriptVoices(script, {
 ```javascript
 // Your standard setup
 const standardVoices = {
-    'NARRATOR': 'john',    // ⭐ Deep narrator (default)
-    'MARCUS': 'josh',      // ✅ Energetic (you like this!)
-    'SARAH': 'rachel',     // Calm female lead
-    'VILLAIN': 'sam',      // Mysterious
-    'HERO': 'nigel'        // Professional main character
+	NARRATOR: "john", // ⭐ Deep narrator (default)
+	MARCUS: "josh", // ✅ Energetic (you like this!)
+	SARAH: "rachel", // Calm female lead
+	VILLAIN: "sam", // Mysterious
+	HERO: "nigel", // Professional main character
 };
 
 await generateScriptVoices(script, {
-    includeNarration: true,
-    voiceMapping: standardVoices
+	includeNarration: true,
+	voiceMapping: standardVoices,
 });
 ```
 

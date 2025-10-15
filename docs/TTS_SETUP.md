@@ -76,7 +76,7 @@ export TTS_PROVIDER="google-cloud-tts"
 {
 	"provider": "google-cloud-tts",
 	"voiceMapping": {
-		"NARRATOR": "en-US-Studio-O",
+		"NARRATOR": "en-US-Wavenet-D",
 		"MARCUS": "en-US-Neural2-D",
 		"SARAH": "en-US-Neural2-F"
 	}

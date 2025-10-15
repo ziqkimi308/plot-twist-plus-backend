@@ -43,114 +43,121 @@ async function generateActImages(imagePrompts, customConfig = {}) {
 	const config = { ...defaultConfig, ...customConfig };
 	const { huggingfaceApiKey } = config;
 
-	const results = [];
+	// Generate all images in PARALLEL for speed
+	console.log(`Generating ${imagePrompts.length} images in parallel...`);
+	const imagePromises = imagePrompts.map(promptData => 
+		generateSingleImage(promptData, huggingfaceApiKey)
+	);
+	
+	const results = await Promise.all(imagePromises);
+	console.log(`All ${results.length} images generated!`);
+	
+	return results;
+}
 
-	for (const promptData of imagePrompts) {
-		const { act, prompt, aspect = '16:9', negative = '' } = promptData;
-		const dimensions = getAspectDimensions(aspect);
+/**
+ * Generate a single image (extracted for parallel processing)
+ */
+async function generateSingleImage(promptData, huggingfaceApiKey) {
+	const { act, prompt, aspect = '16:9', negative = '' } = promptData;
+	const dimensions = getAspectDimensions(aspect);
 
-		// Determine folder based on act
-		const actFolderMap = {
-			'I': 'picture-act-one',
-			'II': 'picture-act-two',
-			'III': 'picture-act-three'
-		};
-		const actFolder = actFolderMap[act] || 'picture-act-one';
-		const actPath = path.join(IMAGE_BASE_DIR, actFolder);
+	// Determine folder based on act
+	const actFolderMap = {
+		'I': 'picture-act-one',
+		'II': 'picture-act-two',
+		'III': 'picture-act-three'
+	};
+	const actFolder = actFolderMap[act] || 'picture-act-one';
+	const actPath = path.join(IMAGE_BASE_DIR, actFolder);
 
-		// Create act folder if it doesn't exist
-		if (!fs.existsSync(actPath)) {
-			fs.mkdirSync(actPath, { recursive: true });
+	// Create act folder if it doesn't exist
+	if (!fs.existsSync(actPath)) {
+		fs.mkdirSync(actPath, { recursive: true });
+	}
+
+	// Generate filename with timestamp to avoid conflicts
+	const timestamp = Date.now();
+	const filename = `${act}_${timestamp}.png`;
+	const filepath = path.join(actPath, filename);
+
+	let imageResult = null;
+	let imageBuffer = null;
+
+	// Try Pollinations.ai first (no API key needed, most reliable)
+	try {
+		console.log(`Act ${act}: Trying Pollinations.ai...`);
+		imageBuffer = await generateWithPollinations(prompt, dimensions);
+		if (imageBuffer && imageBuffer.length > 1024) {
+			console.log(`Act ${act}: ✅ Successfully generated with Pollinations.ai`);
+			imageResult = {
+				provider: 'pollinations.ai',
+				buffer: imageBuffer
+			};
 		}
+	} catch (error) {
+		console.log(`Act ${act}: ❌ Pollinations.ai failed - ${error.message}`);
+	}
 
-		// Generate filename with timestamp to avoid conflicts
-		const timestamp = Date.now();
-		const filename = `${act}_${timestamp}.png`;
-		const filepath = path.join(actPath, filename);
-
-		let imageResult = null;
-		let imageBuffer = null;
-
-		// Try Pollinations.ai first (no API key needed, most reliable)
+	// Try Hugging Face if API key is available
+	if (huggingfaceApiKey && !imageResult) {
 		try {
-			console.log(`Act ${act}: Trying Pollinations.ai...`);
-			imageBuffer = await generateWithPollinations(prompt, dimensions);
+			console.log(`Act ${act}: Trying Hugging Face...`);
+			imageBuffer = await generateWithHuggingFace(prompt, huggingfaceApiKey, dimensions);
 			if (imageBuffer && imageBuffer.length > 1024) {
-				console.log(`Act ${act}: Successfully generated with Pollinations.ai`);
+				console.log(`Act ${act}: ✅ Successfully generated with Hugging Face`);
 				imageResult = {
-					provider: 'pollinations.ai',
+					provider: 'huggingface',
 					buffer: imageBuffer
 				};
 			}
 		} catch (error) {
-			console.log(`Act ${act}: Pollinations.ai failed - ${error.message}`);
+			console.log(`Act ${act}: ❌ Hugging Face failed - ${error.message}`);
 		}
-
-		// Try Hugging Face if API key is available
-		if (huggingfaceApiKey && !imageResult) {
-			try {
-				console.log(`Act ${act}: Trying Hugging Face...`);
-				imageBuffer = await generateWithHuggingFace(prompt, huggingfaceApiKey, dimensions);
-				if (imageBuffer && imageBuffer.length > 1024) {
-					console.log(`Act ${act}: Successfully generated with Hugging Face`);
-					imageResult = {
-						provider: 'huggingface',
-						buffer: imageBuffer
-					};
-				}
-				await sleep(2000); // Longer delay for rate limiting
-			} catch (error) {
-				console.log(`Act ${act}: Hugging Face failed - ${error.message}`);
-			}
-		}
-
-		// Fallback: Use placeholder image service or if buffer too small/invalid
-		if (!imageResult || !imageResult.buffer || imageResult.buffer.length <= 1024) {
-			console.log(`Act ${act}: All APIs failed, using fallback placeholder`);
-			imageBuffer = await generateFallbackImage(prompt, dimensions);
-			imageResult = {
-				provider: 'fallback',
-				buffer: imageBuffer,
-				isFallback: true
-			};
-		}
-
-		// Save image to disk (validate buffer before writing)
-		try {
-			if (!imageResult.buffer || imageResult.buffer.length === 0) {
-				throw new Error('Empty image buffer');
-			}
-			fs.writeFileSync(filepath, imageResult.buffer);
-			console.log(`Act ${act}: Saved to ${filepath}`);
-
-			// Return result with backend URL (not relative path)
-			const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
-			results.push({
-				act,
-				success: true,
-				imageUrl: `${backendUrl}/api/images/${actFolder}/${filename}`,
-				localPath: filepath,
-				prompt,
-				width: dimensions.width,
-				height: dimensions.height,
-				aspect,
-				provider: imageResult.provider,
-				isFallback: imageResult.isFallback || false
-			});
-		} catch (error) {
-			console.error(`Act ${act}: Failed to save image - ${error.message}`);
-			results.push({
-				act,
-				success: false,
-				error: error.message,
-				prompt
-			});
-		}
-
-		await sleep(500);
 	}
 
-	return results;
+	// Fallback: Use placeholder image service or if buffer too small/invalid
+	if (!imageResult || !imageResult.buffer || imageResult.buffer.length <= 1024) {
+		console.log(`Act ${act}: ⚠️  All APIs failed, using fallback placeholder`);
+		imageBuffer = await generateFallbackImage(prompt, dimensions);
+		imageResult = {
+			provider: 'fallback',
+			buffer: imageBuffer,
+			isFallback: true
+		};
+	}
+
+	// Save image to disk (validate buffer before writing)
+	try {
+		if (!imageResult.buffer || imageResult.buffer.length === 0) {
+			throw new Error('Empty image buffer');
+		}
+		fs.writeFileSync(filepath, imageResult.buffer);
+		console.log(`Act ${act}: 💾 Saved to ${filepath}`);
+
+		// Return result with backend URL (not relative path)
+		const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+		return {
+			act,
+			success: true,
+			imageUrl: `${backendUrl}/api/images/${actFolder}/${filename}`,
+			localPath: filepath,
+			prompt,
+			width: dimensions.width,
+			height: dimensions.height,
+			aspect,
+			provider: imageResult.provider,
+			isFallback: imageResult.isFallback || false
+		};
+	} catch (error) {
+		console.error(`Act ${act}: ❌ Failed to save image - ${error.message}`);
+		return {
+			act,
+			success: false,
+			error: error.message,
+			prompt
+		};
+	}
 }
 
 /**
@@ -163,8 +170,8 @@ async function generateWithPollinations(prompt, dimensions) {
 	const encodedPrompt = encodeURIComponent(prompt);
 	const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${dimensions.width}&height=${dimensions.height}&nologo=true&enhance=true&model=flux`;
 
-	// Fetch the image
-	const response = await fetch(imageUrl, { timeout: 15000 });
+	// Fetch the image - increased timeout for complex prompts
+	const response = await fetch(imageUrl, { timeout: 45000 }); // Increased from 15000 to 45000 (45 seconds)
 
 	if (!response.ok) {
 		throw new Error(`HTTP ${response.status}: ${response.statusText}`);

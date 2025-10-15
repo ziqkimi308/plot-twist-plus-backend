@@ -111,8 +111,9 @@ router.post('/', async (req, res) => {
 		}
 
 		// Generate voice audio (loads script from data/script folder)
-		// Provider selection via env (default: google to save API calls)
-		const provider = providerOverride || process.env.TTS_PROVIDER || 'google';
+		// Provider selection via env
+		// Default changed to 'google-cloud-tts' to ensure a male narrator by default
+		const provider = providerOverride || process.env.TTS_PROVIDER || 'google-cloud-tts';
 		const results = await generateScriptVoices({
 			includeNarration,
 			narratorVoice,

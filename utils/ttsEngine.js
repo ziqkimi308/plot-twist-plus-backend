@@ -491,6 +491,10 @@ export async function generateScriptVoices(options = {}) {
 
 	// Build automatic voice mapping for characters not explicitly mapped
 	const providedMapping = voiceMapping || {};
+	// Normalize provided mapping to uppercase keys
+	const providedMappingUpper = Object.fromEntries(
+		Object.entries(providedMapping).map(([k, v]) => [String(k).toUpperCase(), v])
+	);
 	const uniqueChars = Array.from(new Set(dialogue.map(d => d.character)));
 
 	// Simple gender guesser for common names
@@ -511,7 +515,9 @@ export async function generateScriptVoices(options = {}) {
 	// Voice pools per provider
 	const gcpFemale = ['en-US-Neural2-F', 'en-GB-Neural2-C', 'en-AU-Neural2-A'];
 	const gcpMale = ['en-US-Neural2-D', 'en-GB-Neural2-B', 'en-US-Neural2-G'];
-	const gcpNarrator = 'en-US-Studio-O'; // deep male narrator
+	const gcpNarrator = 'en-US-Wavenet-D'; // VERY DEEP male narrator - Wavenet-D with aggressive pitch
+	// Apply VERY DEEP tone for the narrator on Google Cloud TTS only
+	const gcpNarratorSettings = { speakingRate: 0.82, pitch: -10.0 };
 
 	const elFemale = ['rachel', 'bella', 'elli', 'domi', 'dorothy'];
 	const elMale = ['john', 'adam', 'josh', 'antoni', 'arnold'];
@@ -521,13 +527,15 @@ export async function generateScriptVoices(options = {}) {
 	const autoMapping = {};
 
 	// Assign narrator first if present or requested
-	if ((includeNarration || uniqueChars.includes('NARRATOR')) && !providedMapping['NARRATOR']) {
+	const hasNarrator = includeNarration || uniqueChars.some(c => String(c).toUpperCase() === 'NARRATOR');
+	if (hasNarrator && !providedMappingUpper['NARRATOR']) {
 		autoMapping['NARRATOR'] = (provider === 'google-cloud-tts') ? gcpNarrator : elNarrator;
 	}
 
 	for (const ch of uniqueChars) {
-		if (ch === 'NARRATOR') continue;
-		if (providedMapping[ch]) continue;
+		const up = String(ch).toUpperCase();
+		if (up === 'NARRATOR') continue;
+		if (providedMappingUpper[up]) continue;
 		const g = guessGender(ch);
 		if (provider === 'google-cloud-tts') {
 			if (g === 'female') autoMapping[ch] = gcpFemale[fIdx++ % gcpFemale.length];
@@ -547,7 +555,8 @@ export async function generateScriptVoices(options = {}) {
 		}
 	}
 
-	const mapping = { ...autoMapping, ...providedMapping };
+	// Final mapping: prefer explicit provided (uppercase keys), with auto as fallback
+	const mappingUpper = { ...Object.fromEntries(Object.entries(autoMapping).map(([k, v]) => [String(k).toUpperCase(), v])), ...providedMappingUpper };
 
 	if (Object.keys(autoMapping).length) {
 		console.log('Auto voice mapping applied:', autoMapping);
@@ -574,33 +583,40 @@ export async function generateScriptVoices(options = {}) {
 
 		let audioBuffer = null;
 		let providerUsed = null;
+		let chosenVoiceName = null;
 
 		// Google Cloud TTS path (explicit provider)
 		if (!audioBuffer && provider === 'google-cloud-tts') {
 			try {
-				const gcVoiceName = mapping[character]
-					|| (character === 'NARRATOR' ? 'en-US-Studio-O' : 'en-US-Neural2-D');
+				const key = String(character).toUpperCase();
+				const gcVoiceName = mappingUpper[key]
+					|| (key === 'NARRATOR' ? gcpNarrator : 'en-US-Neural2-D');
 				const languageCode = languageCodeFromVoiceName(gcVoiceName, 'en-US');
 				console.log(`   Trying Google Cloud TTS (voice: ${gcVoiceName})...`);
+				chosenVoiceName = gcVoiceName;
 				// Chunk very long inputs for safety (API handles up to ~5000 chars)
 				const maxLen = 4500;
 				if (line.length > maxLen) {
 					const chunks = [];
 					for (let start = 0; start < line.length; start += maxLen) {
 						const chunk = line.substring(start, start + maxLen);
-						const buf = await generateWithGoogleCloudTTS(chunk, {
-							languageCode,
-							voiceName: gcVoiceName
-						});
+						const gcOpts = { languageCode, voiceName: gcVoiceName };
+						if (key === 'NARRATOR') {
+							gcOpts.speakingRate = gcpNarratorSettings.speakingRate;
+							gcOpts.pitch = gcpNarratorSettings.pitch;
+						}
+						const buf = await generateWithGoogleCloudTTS(chunk, gcOpts);
 						chunks.push(buf);
 						await sleep(250);
 					}
 					audioBuffer = Buffer.concat(chunks);
 				} else {
-					audioBuffer = await generateWithGoogleCloudTTS(line, {
-						languageCode,
-						voiceName: gcVoiceName
-					});
+					const gcOpts = { languageCode, voiceName: gcVoiceName };
+					if (key === 'NARRATOR') {
+						gcOpts.speakingRate = gcpNarratorSettings.speakingRate;
+						gcOpts.pitch = gcpNarratorSettings.pitch;
+					}
+					audioBuffer = await generateWithGoogleCloudTTS(line, gcOpts);
 				}
 				providerUsed = 'google-cloud-tts';
 				console.log('   ✅ Google Cloud TTS success');
@@ -610,14 +626,19 @@ export async function generateScriptVoices(options = {}) {
 			}
 		}
 
-		// Try ElevenLabs first if available and not explicitly set to google or google-cloud-tts
-		if (!audioBuffer && provider !== 'google' && provider !== 'google-cloud-tts' && elevenlabsApiKey) {
+		// Try ElevenLabs if available
+		// - In 'auto' mode, it runs first.
+		// - In 'google-cloud-tts' mode, it runs as a fallback if GCP fails.
+		// - Skipped only when provider is explicitly 'google'.
+		if (!audioBuffer && provider !== 'google' && elevenlabsApiKey) {
 			const quotaAvailable = hasQuotaAvailable(line.length);
 			if (quotaAvailable) {
 				try {
-					const voiceName = mapping[character] || 'adam';
+					const key = String(character).toUpperCase();
+					const voiceName = mappingUpper[key] || (key === 'NARRATOR' ? 'john' : 'adam');
 					const voice_id = getVoiceId(voiceName);
 					console.log(`   Trying ElevenLabs (voice: ${voiceName})...`);
+					chosenVoiceName = voiceName;
 					audioBuffer = await generateWithElevenLabs(line, elevenlabsApiKey, { voice_id });
 					providerUsed = 'elevenlabs';
 					trackElevenLabsUsage(line.length, line);
@@ -650,6 +671,7 @@ export async function generateScriptVoices(options = {}) {
 					audioBuffer = await generateWithGoogleTTS(line, language);
 				}
 				providerUsed = 'google';
+				chosenVoiceName = `translate:${language}`;
 				console.log('   ✅ Google TTS success');
 				await sleep(500);
 			} catch (error) {
@@ -672,6 +694,7 @@ export async function generateScriptVoices(options = {}) {
 				audioPath: filepath,
 				audioUrl: `/api/generate-voice/audio/${actFolderName}/${filename}`,
 				provider: providerUsed,
+				voice: chosenVoiceName,
 				success: true,
 				sizeKB: (audioBuffer.length / 1024).toFixed(2)
 			});

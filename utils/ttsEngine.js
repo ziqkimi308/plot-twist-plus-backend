@@ -160,8 +160,31 @@ function extractScriptWithNarration(script, options = {}) {
 		// Check for ACT markers and update current act
 		const actMatch = trimmed.match(/^\*\*ACT\s+(ONE|TWO|THREE)\*\*/i);
 		if (actMatch) {
+			// Before switching acts, save any pending content from the previous act
+			if (currentNarration) {
+				scriptElements.push({
+					character: narratorName,
+					line: currentNarration.trim(),
+					order: lineNumber++,
+					type: 'narration',
+					act: currentAct
+				});
+				currentNarration = '';
+			}
+			if (currentCharacter && currentDialogue) {
+				scriptElements.push({
+					character: currentCharacter,
+					line: currentDialogue.trim(),
+					order: lineNumber++,
+					type: 'dialogue',
+					act: currentAct
+				});
+				currentCharacter = null;
+				currentDialogue = '';
+			}
+
 			currentAct = actMatch[1].toUpperCase();
-			continue; // Skip ACT markers
+			continue; // Skip ACT markers from being added to content
 		}
 
 		// Check for character name

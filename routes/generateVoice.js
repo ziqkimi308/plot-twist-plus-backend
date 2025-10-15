@@ -188,14 +188,21 @@ router.get('/usage', (req, res) => {
 });
 
 /**
- * GET /api/generate-voice/audio/:filename
- * Serves generated audio files
+ * GET /api/generate-voice/audio/:actFolder/:filename
+ * Serves generated audio files from act-specific folders
  */
-router.get('/audio/:filename', (req, res) => {
+router.get('/audio/:actFolder/:filename', (req, res) => {
 	try {
-		const { filename } = req.params;
+		const { actFolder, filename } = req.params;
 
 		// Security: prevent directory traversal
+		if (actFolder.includes('..') || actFolder.includes('/') || actFolder.includes('\\')) {
+			return res.status(400).json({
+				success: false,
+				error: 'Invalid act folder name'
+			});
+		}
+
 		if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
 			return res.status(400).json({
 				success: false,
@@ -203,21 +210,29 @@ router.get('/audio/:filename', (req, res) => {
 			});
 		}
 
-		// Search in data directory
-		const voiceOutputDir = path.join(process.cwd(), 'data');
-		const latestSession = getLatestSessionDir(voiceOutputDir);
-		if (latestSession) {
-			const filePath = path.join(latestSession, filename);
-			if (fs.existsSync(filePath)) {
-				res.type('audio/mpeg');
-				return res.sendFile(filePath);
-			}
+		// Validate act folder name (voice-act-one, voice-act-two, voice-act-three)
+		const validActFolders = ['voice-act-one', 'voice-act-two', 'voice-act-three'];
+		if (!validActFolders.includes(actFolder)) {
+			return res.status(400).json({
+				success: false,
+				error: 'Invalid act folder. Must be voice-act-one, voice-act-two, or voice-act-three'
+			});
+		}
+
+		// Construct file path: data/voice/voice-act-{one|two|three}/filename.mp3
+		const voiceDir = path.join(process.cwd(), 'data', 'voice');
+		const filePath = path.join(voiceDir, actFolder, filename);
+
+		if (fs.existsSync(filePath)) {
+			res.type('audio/mpeg');
+			return res.sendFile(filePath);
 		}
 
 		// File not found
 		res.status(404).json({
 			success: false,
-			error: 'Audio file not found'
+			error: 'Audio file not found',
+			path: `${actFolder}/${filename}`
 		});
 
 	} catch (error) {

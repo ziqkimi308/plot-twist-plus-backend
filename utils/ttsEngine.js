@@ -64,9 +64,17 @@ function extractDialogue(script) {
 	let currentCharacter = null;
 	let currentLine = '';
 	let lineNumber = 0;
+	let currentAct = 'ONE'; // Track current act
 
 	for (const line of lines) {
 		const trimmed = line.trim();
+
+		// Check for ACT markers
+		const actMatch = trimmed.match(/^\*\*ACT\s+(ONE|TWO|THREE)\*\*/i);
+		if (actMatch) {
+			currentAct = actMatch[1].toUpperCase();
+			continue;
+		}
 
 		// Check if line is a character name (ALL CAPS, potentially with parenthetical)
 		const characterMatch = trimmed.match(/^([A-Z][A-Z\s]+?)(\s*\(.*?\))?:?\s*$/);
@@ -77,7 +85,8 @@ function extractDialogue(script) {
 				dialogue.push({
 					character: currentCharacter,
 					line: currentLine.trim(),
-					order: lineNumber++
+					order: lineNumber++,
+					act: currentAct
 				});
 			}
 			currentCharacter = characterMatch[1].trim();
@@ -101,7 +110,8 @@ function extractDialogue(script) {
 		dialogue.push({
 			character: currentCharacter,
 			line: currentLine.trim(),
-			order: lineNumber++
+			order: lineNumber++,
+			act: currentAct
 		});
 	}
 
@@ -132,9 +142,11 @@ function extractScriptWithNarration(script, options = {}) {
 	let currentDialogue = '';
 	let currentNarration = '';
 	let lineNumber = 0;
+	let currentAct = 'ONE'; // Track current act
 
 	const isSceneHeading = (line) => /^(INT\.|EXT\.|FADE|CUT TO|DISSOLVE)/i.test(line);
 	const isTransition = (line) => /^(FADE IN|FADE OUT|CUT TO|DISSOLVE TO)/i.test(line);
+	const isActMarker = (line) => /^\*\*ACT\s+(ONE|TWO|THREE)\*\*/i.test(line);
 	const isCharacterName = (line) => {
 		const match = line.match(/^([A-Z][A-Z\s]+?)(\s*\(.*?\))?:?\s*$/);
 		return match && line.length > 0 && line.length < 50;
@@ -144,6 +156,13 @@ function extractScriptWithNarration(script, options = {}) {
 		const trimmed = lines[i].trim();
 
 		if (!trimmed) continue; // Skip empty lines
+
+		// Check for ACT markers and update current act
+		const actMatch = trimmed.match(/^\*\*ACT\s+(ONE|TWO|THREE)\*\*/i);
+		if (actMatch) {
+			currentAct = actMatch[1].toUpperCase();
+			continue; // Skip ACT markers
+		}
 
 		// Check for character name
 		const characterMatch = trimmed.match(/^([A-Z][A-Z\s]+?)(\s*\(.*?\))?:?\s*$/);
@@ -155,7 +174,8 @@ function extractScriptWithNarration(script, options = {}) {
 					character: narratorName,
 					line: currentNarration.trim(),
 					order: lineNumber++,
-					type: 'narration'
+					type: 'narration',
+					act: currentAct
 				});
 				currentNarration = '';
 			}
@@ -166,7 +186,8 @@ function extractScriptWithNarration(script, options = {}) {
 					character: currentCharacter,
 					line: currentDialogue.trim(),
 					order: lineNumber++,
-					type: 'dialogue'
+					type: 'dialogue',
+					act: currentAct
 				});
 			}
 
@@ -191,7 +212,8 @@ function extractScriptWithNarration(script, options = {}) {
 					character: currentCharacter,
 					line: currentDialogue.trim(),
 					order: lineNumber++,
-					type: 'dialogue'
+					type: 'dialogue',
+					act: currentAct
 				});
 				currentCharacter = null;
 				currentDialogue = '';
@@ -205,7 +227,8 @@ function extractScriptWithNarration(script, options = {}) {
 							character: narratorName,
 							line: currentNarration.trim(),
 							order: lineNumber++,
-							type: 'narration'
+							type: 'narration',
+							act: currentAct
 						});
 						currentNarration = '';
 					}
@@ -213,7 +236,8 @@ function extractScriptWithNarration(script, options = {}) {
 						character: narratorName,
 						line: trimmed,
 						order: lineNumber++,
-						type: 'scene-heading'
+						type: 'scene-heading',
+						act: currentAct
 					});
 				}
 			}
@@ -230,7 +254,8 @@ function extractScriptWithNarration(script, options = {}) {
 			character: narratorName,
 			line: currentNarration.trim(),
 			order: lineNumber++,
-			type: 'narration'
+			type: 'narration',
+			act: currentAct
 		});
 	}
 
@@ -240,7 +265,8 @@ function extractScriptWithNarration(script, options = {}) {
 			character: currentCharacter,
 			line: currentDialogue.trim(),
 			order: lineNumber++,
-			type: 'dialogue'
+			type: 'dialogue',
+			act: currentAct
 		});
 	}
 
@@ -379,46 +405,16 @@ async function generateScriptVoices(options = {}) {
 
 	const results = [];
 
-	// Helper: Determine act for each line
-	function getActForLine(order, script) {
-		const lines = script.split('\n');
-		let act = 'I';
-		let actOrder = 0;
-		let actMarkers = [];
-		// Find all act markers and their line numbers
-		for (let i = 0; i < lines.length; i++) {
-			const match = lines[i].match(/^ACT\s+(I+|II|III|[IVX]+|\d+)/i);
-			if (match) {
-				actMarkers.push({ act: match[1], lineNum: i });
-			}
-		}
-		// Find which act the current order belongs to
-		let currentAct = 'I';
-		let currentActIndex = 0;
-		let lineCount = 0;
-		for (let i = 0; i < lines.length; i++) {
-			if (actMarkers[currentActIndex + 1] && i >= actMarkers[currentActIndex + 1].lineNum) {
-				currentActIndex++;
-				currentAct = actMarkers[currentActIndex].act;
-			}
-			if (lines[i].trim()) {
-				if (lineCount === order) return currentAct;
-				lineCount++;
-			}
-		}
-		return currentAct;
-	}
-
+	// Process each dialogue element (acts are already tagged during extraction)
 	for (let i = 0; i < dialogue.length; i++) {
-		const { character, line, order } = dialogue[i];
-		const act = getActForLine(order, script);
+		const { character, line, order, act } = dialogue[i];
 
-		// Map act to folder name: I -> voice-act-one, II -> voice-act-two, III -> voice-act-three
+		// Map act to folder name: ONE -> voice-act-one, TWO -> voice-act-two, THREE -> voice-act-three
 		let actFolderName;
-		if (act === 'I') actFolderName = 'voice-act-one';
-		else if (act === 'II') actFolderName = 'voice-act-two';
-		else if (act === 'III') actFolderName = 'voice-act-three';
-		else actFolderName = `voice-act-${act}`;
+		if (act === 'ONE') actFolderName = 'voice-act-one';
+		else if (act === 'TWO') actFolderName = 'voice-act-two';
+		else if (act === 'THREE') actFolderName = 'voice-act-three';
+		else actFolderName = `voice-act-${act.toLowerCase()}`;
 
 		const actDir = path.join(outputDir, actFolderName);
 		if (!fs.existsSync(actDir)) {

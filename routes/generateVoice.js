@@ -90,13 +90,8 @@ router.post('/', async (req, res) => {
 			voiceMapping = {}
 		} = req.body;
 
-		// Validate input
-		if (!script || typeof script !== 'string' || script.trim().length === 0) {
-			return res.status(400).json({
-				success: false,
-				error: 'Script is required and must be a non-empty string'
-			});
-		}
+		// Note: script parameter is optional - generateScriptVoices loads from disk
+		// Keeping it for backward compatibility but not validating it
 
 		console.log('\n=== Voice Generation Request ===');
 		console.log('Include narration:', includeNarration);

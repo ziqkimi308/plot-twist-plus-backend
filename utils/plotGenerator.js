@@ -15,32 +15,32 @@ import { generateText } from './aiTextGenerator.js';
  * @returns {Promise<Object>} Plot data with acts and metadata
  */
 export async function generatePlotTwist({ genre, characters, setting }) {
-    // Validate inputs
-    if (!genre || !characters || !setting) {
-        throw new Error('Genre, characters, and setting are all required');
-    }
+	// Validate inputs
+	if (!genre || !characters || !setting) {
+		throw new Error('Genre, characters, and setting are all required');
+	}
 
-    console.log('Building plot prompt...');
-    
-    // Build the prompt using promptBuilder
-    const prompt = buildPlotPrompt(genre, characters, setting);
-    
-    console.log('Generating plot with AI...');
-    
-    // Generate the plot using AI
-    const plotText = await generateText(prompt);
-    
-    // Parse the plot into acts
-    const acts = parseActsFromPlot(plotText);
-    
-    // Determine which provider was used (check the console logs from generateText)
-    const provider = detectProvider(plotText);
-    
-    return {
-        plot: plotText,
-        acts,
-        provider
-    };
+	console.log('Building plot prompt...');
+
+	// Build the prompt using promptBuilder
+	const prompt = buildPlotPrompt(genre, characters, setting);
+
+	console.log('Generating plot with AI...');
+
+	// Generate the plot using AI
+	const plotText = await generateText(prompt);
+
+	// Parse the plot into acts
+	const acts = parseActsFromPlot(plotText);
+
+	// Determine which provider was used (check the console logs from generateText)
+	const provider = detectProvider(plotText);
+
+	return {
+		plot: plotText,
+		acts,
+		provider
+	};
 }
 
 /**
@@ -49,33 +49,33 @@ export async function generatePlotTwist({ genre, characters, setting }) {
  * @returns {Object} Object with actI, actII, actIII
  */
 function parseActsFromPlot(plotText) {
-    const acts = {
-        actI: '',
-        actII: '',
-        actIII: ''
-    };
-    
-    // Try to split by ACT headers
-    const actIMatch = plotText.match(/\*\*ACT I[:\s-]+SETUP.*?\*\*\n([\s\S]*?)(?=\*\*ACT II|\*\*ACT 2|$)/i);
-    const actIIMatch = plotText.match(/\*\*ACT II[:\s-]+CONFRONTATION.*?\*\*\n([\s\S]*?)(?=\*\*ACT III|\*\*ACT 3|$)/i);
-    const actIIIMatch = plotText.match(/\*\*ACT III[:\s-]+RESOLUTION.*?\*\*\n([\s\S]*?)$/i);
-    
-    if (actIMatch) acts.actI = actIMatch[1].trim();
-    if (actIIMatch) acts.actII = actIIMatch[1].trim();
-    if (actIIIMatch) acts.actIII = actIIIMatch[1].trim();
-    
-    // Fallback: if no matches, try simpler patterns
-    if (!acts.actI && !acts.actII && !acts.actIII) {
-        const simpleActI = plotText.match(/ACT I[\s\S]*?(?=ACT II|ACT 2|$)/i);
-        const simpleActII = plotText.match(/ACT II[\s\S]*?(?=ACT III|ACT 3|$)/i);
-        const simpleActIII = plotText.match(/ACT III[\s\S]*$/i);
-        
-        if (simpleActI) acts.actI = simpleActI[0].trim();
-        if (simpleActII) acts.actII = simpleActII[0].trim();
-        if (simpleActIII) acts.actIII = simpleActIII[0].trim();
-    }
-    
-    return acts;
+	const acts = {
+		actI: '',
+		actII: '',
+		actIII: ''
+	};
+
+	// Try to split by ACT headers (word-based: ONE, TWO, THREE)
+	const actIMatch = plotText.match(/\*\*ACT ONE[:\s-]+SETUP.*?\*\*\n([\s\S]*?)(?=\*\*ACT TWO|\*\*ACT 2|$)/i);
+	const actIIMatch = plotText.match(/\*\*ACT TWO[:\s-]+CONFRONTATION.*?\*\*\n([\s\S]*?)(?=\*\*ACT THREE|\*\*ACT 3|$)/i);
+	const actIIIMatch = plotText.match(/\*\*ACT THREE[:\s-]+RESOLUTION.*?\*\*\n([\s\S]*?)$/i);
+
+	if (actIMatch) acts.actI = actIMatch[1].trim();
+	if (actIIMatch) acts.actII = actIIMatch[1].trim();
+	if (actIIIMatch) acts.actIII = actIIIMatch[1].trim();
+
+	// Fallback: if no matches, try simpler patterns
+	if (!acts.actI && !acts.actII && !acts.actIII) {
+		const simpleActI = plotText.match(/ACT ONE[\s\S]*?(?=ACT TWO|ACT 2|$)/i);
+		const simpleActII = plotText.match(/ACT TWO[\s\S]*?(?=ACT THREE|ACT 3|$)/i);
+		const simpleActIII = plotText.match(/ACT THREE[\s\S]*$/i);
+
+		if (simpleActI) acts.actI = simpleActI[0].trim();
+		if (simpleActII) acts.actII = simpleActII[0].trim();
+		if (simpleActIII) acts.actIII = simpleActIII[0].trim();
+	}
+
+	return acts;
 }
 
 /**
@@ -84,7 +84,7 @@ function parseActsFromPlot(plotText) {
  * @returns {string} Provider name
  */
 function detectProvider(plotText) {
-    // This is a simple heuristic - in production you'd track this differently
-    // For now, we return 'groq' as default since it's the primary provider
-    return 'groq';
+	// This is a simple heuristic - in production you'd track this differently
+	// For now, we return 'groq' as default since it's the primary provider
+	return 'groq';
 }

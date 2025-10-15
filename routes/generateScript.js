@@ -36,14 +36,20 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
 	try {
-		const { title, style } = req.body;
+		const { plotActOne, plotActTwo, plotActThree, title, style } = req.body;
 
 		console.log('\n=== Script Generation Request ===');
 		console.log('Title:', title || 'untitled');
 		console.log('Style:', style || 'default');
+		console.log('Plot Act One:', plotActOne ? plotActOne.substring(0, 100) : '[empty]');
+		console.log('Plot Act Two:', plotActTwo ? plotActTwo.substring(0, 100) : '[empty]');
+		console.log('Plot Act Three:', plotActThree ? plotActThree.substring(0, 100) : '[empty]');
 
-		// Convert plot to screenplay (loads plot from data folder)
+		// Convert plot to screenplay using three acts
 		const result = await convertPlotToScreenplay({
+			plotActOne,
+			plotActTwo,
+			plotActThree,
 			title: title?.trim(),
 			style: style?.trim()
 		});

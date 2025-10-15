@@ -22,25 +22,25 @@ GENRE: ${genre}
 CHARACTERS: ${characters}
 SETTING: ${setting}
 
-Please generate a detailed 3-act plot that follows these guidelines:
+Please generate a detailed 3-part plot that follows these guidelines:
 
-**ACT I - SETUP (25% of story)**
+**ACT ONE - SETUP (25% of story)**
 - Establish the protagonist and their ordinary world
 - Introduce the main characters and their relationships
 - Set up the story's tone, genre, and setting
 - Plant seeds for future plot twists (foreshadowing)
 - Present the inciting incident that disrupts the protagonist's world
-- End with a plot point that propels the story into Act II
+- End with a plot point that propels the story into the second part
 
-**ACT II - CONFRONTATION (50% of story)**
+**ACT TWO - CONFRONTATION (50% of story)**
 - Part A: The protagonist faces obstacles and complications
 - **MIDPOINT PLOT TWIST**: A major revelation that completely changes the story direction
 - Part B: Escalating tension with new information from the twist
 - Additional plot twists that challenge the protagonist's understanding
 - The protagonist faces their greatest challenge yet
-- End with the crisis moment that leads to Act III
+- End with the crisis moment that leads to the third part
 
-**ACT III - RESOLUTION (25% of story)**
+**ACT THREE - RESOLUTION (25% of story)**
 - **FINAL PLOT TWIST**: A shocking revelation that recontextualizes everything
 - The climax where the protagonist faces their final challenge with new knowledge
 - The resolution of all major plot threads
@@ -50,7 +50,7 @@ Please generate a detailed 3-act plot that follows these guidelines:
 **PLOT TWIST REQUIREMENTS:**
 - Include at least 2-3 major plot twists throughout the story
 - Each twist should be surprising but logical when looking back
-- Foreshadow twists subtly in earlier acts
+- Foreshadow twists subtly in earlier parts
 - Focus on character motivations and internal conflicts that lead to plot twists
 - Use the setting effectively to enhance the story and reveal secrets
 - Character secrets and hidden motivations that create plot twists
@@ -60,18 +60,24 @@ Please generate a detailed 3-act plot that follows these guidelines:
 - Create tension and stakes that escalate throughout
 - End with a satisfying resolution that ties all twists together
 
-**OUTPUT FORMAT:**
-Structure your response as follows:
-1. **ACT I - SETUP**
-   - [Detailed plot points and character introductions]
-   - [Foreshadowing elements for future twists]
-2. **ACT II - CONFRONTATION** 
-   - Part A: [Rising action and complications]
-   - **MIDPOINT TWIST**: [Major plot twist/revelation]
-   - Part B: [Escalating tension with new information]
-3. **ACT III - RESOLUTION**
-   - **FINAL TWIST**: [Shocking revelation]
-   - [Climax and resolution]
+**CRITICAL OUTPUT FORMAT REQUIREMENTS:**
+- Use ONLY the exact headers: **ACT ONE - SETUP**, **ACT TWO - CONFRONTATION**, **ACT THREE - RESOLUTION**
+- Do NOT use any other variations like "Act I", "ACT I", "Act 1", or similar
+- Do NOT include subheadings like "ACT ONE CONCLUSION" or "END OF ACT ONE"
+- Structure your response EXACTLY as follows:
+
+**ACT ONE - SETUP**
+[Detailed plot points and character introductions]
+[Foreshadowing elements for future twists]
+
+**ACT TWO - CONFRONTATION** 
+Part A: [Rising action and complications]
+**MIDPOINT TWIST**: [Major plot twist/revelation]
+Part B: [Escalating tension with new information]
+
+**ACT THREE - RESOLUTION**
+**FINAL TWIST**: [Shocking revelation]
+[Climax and resolution]
 
 Make this plot engaging, original, and filled with unexpected turns that will keep audiences guessing until the very end.`;
 
@@ -104,22 +110,27 @@ Please create a script that follows these guidelines:
 - Keep dialogue natural and character-specific
 - Preserve all plot twists and dramatic tension
 - Ensure smooth flow between narration and dialogue
+- **IMPORTANT**: Distribute content evenly across all three acts - each act should be substantial and detailed
+- **ACT ONE** should contain ALL the setup from the ACT ONE plot section
+- **ACT TWO** should contain ALL the confrontation from the ACT TWO plot section  
+- **ACT THREE** should contain ALL the resolution from the ACT THREE plot section
+- Do NOT put plot elements from earlier acts into ACT THREE
 
 **CRITICAL FORMATTING RULES FOR VOICE GENERATION:**
 1. **NARRATOR** - Use for ALL scene descriptions, actions, and transitions
-   Example:
-   NARRATOR
-   A dimly lit office. Detective Sarah Chen sits at her desk, examining case files. Rain patters against the window.
+	Example:
+	NARRATOR
+	A dimly lit office. Detective Sarah Chen sits at her desk, examining case files. Rain patters against the window.
 
 2. **CHARACTER NAME** - Use for character dialogue ONLY
-   Example:
-   SARAH CHEN
-   Something doesn't add up here. The timeline is all wrong.
+	Example:
+	SARAH CHEN
+	Something doesn't add up here. The timeline is all wrong.
 
 3. **Alternating Pattern** - Always alternate: NARRATOR → DIALOGUE → NARRATOR → DIALOGUE
-   - NEVER put dialogue directly after dialogue without narration
-   - NEVER mix action descriptions with character dialogue
-   - ALWAYS use NARRATOR to describe character actions/emotions
+	- NEVER put dialogue directly after dialogue without narration
+	- NEVER mix action descriptions with character dialogue
+	- ALWAYS use NARRATOR to describe character actions/emotions
 
 **NARRATOR CONTENT SHOULD INCLUDE:**
 - Scene settings (INT./EXT. descriptions)
@@ -135,25 +146,26 @@ Please create a script that follows these guidelines:
 - Character-specific speech patterns
 - Emotional tone through words (not stage directions)
 
-**OUTPUT FORMAT:**
-Structure your response with clear alternating blocks:
+**CRITICAL OUTPUT FORMAT REQUIREMENTS:**
+- Use ONLY the exact headers: **ACT ONE**, **ACT TWO**, **ACT THREE**
+- Do NOT use any other variations like "Act I", "ACT I", "Act 1", or similar
+- Do NOT include subheadings like "ACT ONE CONCLUSION" or "END OF ACT ONE"
+- Structure your response EXACTLY as follows:
 
-NARRATOR
-[Scene opening - set the location, atmosphere, and initial action]
+**ACT ONE**
+[Script for the first part, alternating NARRATOR and CHARACTER blocks]
 
-CHARACTER NAME
-[Their first line of dialogue]
+**ACT TWO**
+[Script for the second part, alternating NARRATOR and CHARACTER blocks]
 
-NARRATOR
-[Describe their action, another character's entrance, or scene change]
-
-CHARACTER NAME
-[Next dialogue]
+**ACT THREE**
+[Script for the third part, alternating NARRATOR and CHARACTER blocks]
 
 Continue this pattern throughout the entire script.
 
 **EXAMPLE OF CORRECT FORMAT:**
 
+**ACT ONE**
 NARRATOR
 Interior. A detective's office at night. Rain hammers against the windows. Detective Sarah Chen sits alone at her desk, surrounded by case files. She frowns at a document.
 
@@ -165,6 +177,12 @@ The door suddenly bursts open. Detective Marcus Reed rushes in, out of breath, c
 
 MARCUS REED
 Sarah! You need to see this right now.
+
+**ACT TWO**
+[Continue with alternating NARRATOR and CHARACTER blocks for the second part]
+
+**ACT THREE**
+[Continue with alternating NARRATOR and CHARACTER blocks for the third part]
 
 **REMEMBER:**
 - Every action/description = NARRATOR

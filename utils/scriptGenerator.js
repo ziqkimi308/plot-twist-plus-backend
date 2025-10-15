@@ -19,20 +19,40 @@ import path from 'path';
  */
 export async function convertPlotToScreenplay(options = {}) {
 	const { title, style } = options;
-	// Load complete plot from data/plot folder
+	// Load all three plot act files and concatenate with clear act markers
 	const plotDir = path.join(process.cwd(), 'data', 'plot');
 	if (!fs.existsSync(plotDir)) {
 		throw new Error('Plot folder does not exist');
 	}
-	const plotFile = path.join(plotDir, 'plot-complete.txt');
-	if (!fs.existsSync(plotFile)) {
-		throw new Error('No plot file found in data/plot folder');
+	const actOneFile = path.join(plotDir, 'plot-act-one.txt');
+	const actTwoFile = path.join(plotDir, 'plot-act-two.txt');
+	const actThreeFile = path.join(plotDir, 'plot-act-three.txt');
+	if (!fs.existsSync(actOneFile) || !fs.existsSync(actTwoFile) || !fs.existsSync(actThreeFile)) {
+		throw new Error('One or more act plot files missing in data/plot folder');
 	}
-	const plot = fs.readFileSync(plotFile, 'utf-8');
+	const actOnePlot = fs.readFileSync(actOneFile, 'utf-8');
+	const actTwoPlot = fs.readFileSync(actTwoFile, 'utf-8');
+	const actThreePlot = fs.readFileSync(actThreeFile, 'utf-8');
+
+	// Reconstruct the full plot with clear act markers to help AI understand structure
+	const fullPlot = `**ACT ONE - SETUP**
+${actOnePlot}
+
+**ACT TWO - CONFRONTATION**
+${actTwoPlot}
+
+**ACT THREE - RESOLUTION**
+${actThreePlot}`;
 
 	console.log('Building screenplay prompt...');
+	console.log('--- ACT I PLOT ---\n', actOnePlot.substring(0, 200));
+	console.log('--- ACT II PLOT ---\n', actTwoPlot.substring(0, 200));
+	console.log('--- ACT III PLOT ---\n', actThreePlot.substring(0, 200));
 	// Build the prompt using promptBuilder (only takes plot parameter)
-	const prompt = buildScriptPrompt(plot);
+	const prompt = buildScriptPrompt(fullPlot);
+
+	console.log('Screenplay prompt sent to AI:');
+	console.log(prompt);
 
 	console.log('Converting plot to screenplay with AI...');
 	// Generate the screenplay using AI
@@ -44,19 +64,38 @@ export async function convertPlotToScreenplay(options = {}) {
 		fs.mkdirSync(scriptDir, { recursive: true });
 	}
 
-	// Split script by acts
-	const actMatches = scriptText.split(/(?=ACT\s+(?:I+|II|III|ONE|TWO|THREE))/i);
+	// Split script by acts - match only standalone act headers, not embedded in other text
+	console.log('Full script text length:', scriptText.length);
+	console.log('Script preview:', scriptText.substring(0, 200));
+
+	// Split using newline + act marker pattern to avoid matching "ACT ONE CONCLUSION"
+	const actMatches = scriptText.split(/((?:^|\n)\*\*ACT\s*(?:ONE|TWO|THREE)\*\*)/gim);
+	console.log('Act matches count:', actMatches.length);
+	console.log('Act matches:', actMatches.map((m, i) => `[${i}]: ${m.substring(0, 50)}`));
+
 	let actI = '', actII = '', actIII = '';
 
-	for (const section of actMatches) {
-		if (/ACT\s+(?:I+|ONE)/i.test(section)) {
-			actI = section;
-		} else if (/ACT\s+(?:II|TWO)/i.test(section)) {
-			actII = section;
-		} else if (/ACT\s+(?:III|THREE)/i.test(section)) {
-			actIII = section;
+	// Reconstruct acts by pairing headers with their content
+	for (let i = 0; i < actMatches.length; i++) {
+		const section = actMatches[i];
+
+		// Check if this is an act header
+		if (/^\*\*ACT\s*ONE\*\*/i.test(section.trim())) {
+			// Get the content (next element in array)
+			actI = section + (actMatches[i + 1] || '');
+			console.log('Found ACT ONE, length:', actI.length);
+		} else if (/^\*\*ACT\s*TWO\*\*/i.test(section.trim())) {
+			actII = section + (actMatches[i + 1] || '');
+			console.log('Found ACT TWO, length:', actII.length);
+		} else if (/^\*\*ACT\s*THREE\*\*/i.test(section.trim())) {
+			actIII = section + (actMatches[i + 1] || '');
+			console.log('Found ACT THREE, length:', actIII.length);
 		}
 	}
+
+	console.log('Final ACT ONE length:', actI.length);
+	console.log('Final ACT TWO length:', actII.length);
+	console.log('Final ACT THREE length:', actIII.length);
 
 	// Save individual act files
 	fs.writeFileSync(path.join(scriptDir, 'script-act-one.txt'), actI);

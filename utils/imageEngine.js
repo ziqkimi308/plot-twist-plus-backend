@@ -45,13 +45,13 @@ async function generateActImages(imagePrompts, customConfig = {}) {
 
 	// Generate all images in PARALLEL for speed
 	console.log(`Generating ${imagePrompts.length} images in parallel...`);
-	const imagePromises = imagePrompts.map(promptData => 
+	const imagePromises = imagePrompts.map(promptData =>
 		generateSingleImage(promptData, huggingfaceApiKey)
 	);
-	
+
 	const results = await Promise.all(imagePromises);
 	console.log(`All ${results.length} images generated!`);
-	
+
 	return results;
 }
 

@@ -22,11 +22,29 @@ GENRE: ${genre}
 CHARACTERS: ${characters}
 SETTING: ${setting}
 
-Please generate a detailed 3-part plot that follows these guidelines:
+**CRITICAL OUTPUT FORMAT - START WITH CHARACTER LIST:**
+
+Begin your response with a CHARACTER section that lists ALL characters in the story with their genders:
+
+**CHARACTERS:**
+- [Character Name] (male)
+- [Character Name] (female)
+- [Character Name] (male)
+... (list all characters)
+
+Then follow with the 3-act structure.
+
+**IMPORTANT NOTES:**
+1. The CHARACTER section helps with voice assignment and should list EVERY character that appears in the story
+2. Include full names (e.g., "Dr. Sarah Chen" not just "Sarah")
+3. Only use (male) or (female) - no other gender markers
+4. After the CHARACTER section, proceed with the three acts
+
+Please generate a detailed plot with the following structure:
 
 **ACT ONE - SETUP (25% of story)**
 - Establish the protagonist and their ordinary world
-- Introduce the main characters and their relationships
+- Introduce the main characters with their gender clearly marked on first mention
 - Set up the story's tone, genre, and setting
 - Plant seeds for future plot twists (foreshadowing)
 - Present the inciting incident that disrupts the protagonist's world
@@ -39,6 +57,7 @@ Please generate a detailed 3-part plot that follows these guidelines:
 - Additional plot twists that challenge the protagonist's understanding
 - The protagonist faces their greatest challenge yet
 - End with the crisis moment that leads to the third part
+- Mark gender of any NEW characters introduced in this act
 
 **ACT THREE - RESOLUTION (25% of story)**
 - **FINAL PLOT TWIST**: A shocking revelation that recontextualizes everything
@@ -46,6 +65,7 @@ Please generate a detailed 3-part plot that follows these guidelines:
 - The resolution of all major plot threads
 - Character arcs are completed with the impact of all twists
 - A satisfying conclusion that fits the genre
+- Mark gender of any NEW characters introduced in this act
 
 **PLOT TWIST REQUIREMENTS:**
 - Include at least 2-3 major plot twists throughout the story
@@ -100,12 +120,24 @@ function buildScriptPrompt(plot) {
 PLOT TO CONVERT:
 ${plot}
 
+**CRITICAL INSTRUCTIONS:**
+
+1. **SKIP THE CHARACTER SECTION:** The plot begins with a **CHARACTERS:** section listing all characters and genders. DO NOT include this section in the script. Skip it entirely and start with **ACT ONE**.
+
+2. **CHARACTER NAMES IN SCRIPT:** When writing character dialogue, use ONLY the character name WITHOUT gender markers. The gender information was in the CHARACTER section for reference only.
+
+Example:
+❌ WRONG: SARAH CHEN (female)
+✅ CORRECT: SARAH CHEN
+
+3. **DO NOT READ GENDER MARKERS ALOUD:** Gender markers like (male) or (female) should NEVER appear in the script as they would be narrated.
+
 Please create a script that follows these guidelines:
 
 **SCRIPT REQUIREMENTS:**
 - Write for audiobook/voice production (not traditional screenplay)
 - Use NARRATOR for all scene descriptions and action lines
-- Use CHARACTER NAMES for all dialogue
+- Use CHARACTER NAMES ONLY for all dialogue (no gender markers)
 - Make narration vivid and descriptive for audio listeners
 - Keep dialogue natural and character-specific
 - Preserve all plot twists and dramatic tension
@@ -117,34 +149,66 @@ Please create a script that follows these guidelines:
 - Do NOT put plot elements from earlier acts into ACT THREE
 
 **CRITICAL FORMATTING RULES FOR VOICE GENERATION:**
+
 1. **NARRATOR** - Use for ALL scene descriptions, actions, and transitions
 	Example:
 	NARRATOR
 	A dimly lit office. Detective Sarah Chen sits at her desk, examining case files. Rain patters against the window.
 
-2. **CHARACTER NAME** - Use for character dialogue ONLY
+2. **CHARACTER NAME** - Use for character dialogue ONLY (NO gender markers, NO parentheticals)
 	Example:
 	SARAH CHEN
 	Something doesn't add up here. The timeline is all wrong.
+	
+	❌ WRONG - DO NOT USE PARENTHETICALS:
+	SARAH CHEN
+	(concerned) Something doesn't add up here.
+	
+	✅ CORRECT - Put emotions in NARRATOR:
+	NARRATOR
+	Sarah looks concerned as she examines the files.
+	
+	SARAH CHEN
+	Something doesn't add up here.
 
 3. **Alternating Pattern** - Always alternate: NARRATOR → DIALOGUE → NARRATOR → DIALOGUE
 	- NEVER put dialogue directly after dialogue without narration
 	- NEVER mix action descriptions with character dialogue
 	- ALWAYS use NARRATOR to describe character actions/emotions
+	- NO PARENTHETICALS in dialogue (e.g., (angrily), (whispers), (concerned))
+	- Put ALL emotional cues and actions in NARRATOR blocks
+
+4. **Character Names Are NOT Narrated** - The NARRATOR should describe what characters do, but NEVER say character names in dialogue
+	❌ WRONG:
+	NARRATOR
+	JOHN says hello to MARRY.
+	
+	✅ CORRECT:
+	NARRATOR
+	John says hello to his wife.
+	
+	Or even better:
+	NARRATOR
+	He approaches his wife with a warm smile.
+	
+	JOHN
+	Hello, darling.
 
 **NARRATOR CONTENT SHOULD INCLUDE:**
 - Scene settings (INT./EXT. descriptions)
 - Character actions and movements
-- Character emotions and expressions
+- Character emotions and expressions (NOT in parentheticals)
 - Environmental details (sounds, sights, atmosphere)
 - Transitions between scenes
 - Physical descriptions of what's happening
+- How characters speak (whisper, shout, etc.) - describe it in narration, not parentheticals
 
 **DIALOGUE CONTENT SHOULD INCLUDE:**
-- Only what the character speaks
+- ONLY what the character speaks
 - Natural, conversational language
 - Character-specific speech patterns
-- Emotional tone through words (not stage directions)
+- Emotional tone through word choice (not stage directions)
+- NO parentheticals (no (whispers), (angrily), (concerned), etc.)
 
 **CRITICAL OUTPUT FORMAT REQUIREMENTS:**
 - Use ONLY the exact headers: **ACT ONE**, **ACT TWO**, **ACT THREE**
@@ -186,6 +250,11 @@ Sarah! You need to see this right now.
 
 **REMEMBER:**
 - Every action/description = NARRATOR
+- Every spoken word = CHARACTER NAME (no gender markers)
+- Keep narration engaging and cinematic
+- Make dialogue natural and character-driven
+- Maintain clear separation for voice actors
+- NO gender markers in the script
 - Every spoken word = CHARACTER NAME
 - Keep narration engaging and cinematic
 - Make dialogue natural and character-driven

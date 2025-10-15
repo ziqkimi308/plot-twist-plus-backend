@@ -51,6 +51,133 @@ function getVoiceId(voiceName) {
 }
 
 /**
+ * Extract character gender information from script
+ * Parses gender markers like: CHARACTER NAME (male) or CHARACTER NAME (female)
+ * @param {string} script - Full screenplay script
+ * @returns {Object} Map of character names to their gender {characterName: 'male'|'female'}
+ */
+function extractCharacterGenders(script) {
+	if (!script || typeof script !== 'string') {
+		return {};
+	}
+
+	const genderMap = {};
+	const lines = script.split('\n');
+
+	for (const line of lines) {
+		const trimmed = line.trim();
+		// Match: CHARACTER NAME (male) or CHARACTER NAME (female)
+		const match = trimmed.match(/^([A-Z][A-Z\s]+?)\s*\((male|female)\)/i);
+		if (match) {
+			const characterName = match[1].trim().toUpperCase();
+			const gender = match[2].toLowerCase();
+			if (!genderMap[characterName]) {
+				genderMap[characterName] = gender;
+				console.log(`📋 Extracted gender: ${characterName} = ${gender}`);
+			}
+		}
+	}
+
+	return genderMap;
+}
+
+/**
+ * Extract character genders from plot CHARACTER section
+ * Looks for **CHARACTERS:** section and extracts all character-gender pairs
+ * @param {string} plot - The generated plot with CHARACTER section
+ * @returns {Object} Object with genderMap and characterOrder array
+ */
+function extractCharactersFromPlot(plot) {
+	if (!plot || typeof plot !== 'string') {
+		return { genderMap: {}, characterOrder: [] };
+	}
+
+	const genderMap = {};
+	const characterOrder = []; // Track order characters appear in plot
+
+	// Find the CHARACTERS section
+	const characterSectionMatch = plot.match(/\*\*CHARACTERS:\*\*([\s\S]*?)(?=\*\*ACT|$)/i);
+
+	if (!characterSectionMatch) {
+		console.log('⚠️  No CHARACTER section found in plot');
+		return { genderMap, characterOrder };
+	}
+
+	const characterSection = characterSectionMatch[1];
+	const lines = characterSection.split('\n');
+
+	console.log('🔍 Extracting characters from plot CHARACTER section...');
+
+	for (const line of lines) {
+		const trimmed = line.trim();
+		// Match: - Character Name (male) or - Character Name (female)
+		const match = trimmed.match(/^-\s*(.+?)\s*\((male|female)\)/i);
+		if (match) {
+			const fullName = match[1].trim().toUpperCase();
+			const gender = match[2].toLowerCase();
+
+			// Store with FULL NAME (e.g., "JOHN SMITH" or "DR. RACHEL LEE")
+			genderMap[fullName] = gender;
+
+			// Track character order (first character in list = main character)
+			if (!characterOrder.find(c => c.name === fullName)) {
+				characterOrder.push({ name: fullName, gender });
+			}
+
+			// Extract name variations for flexible matching
+			const commonTitles = ['DR.', 'DR', 'MR.', 'MR', 'MRS.', 'MRS', 'MS.', 'MS', 'MISS', 'NURSE', 'OFFICER', 'DETECTIVE', 'PROFESSOR', 'PROF.', 'PROF'];
+			const nameParts = fullName.split(/\s+/);
+
+			let nameWithoutTitle = fullName;
+			let firstName = nameParts[0];
+
+			// If first word is a title, extract name without title
+			if (commonTitles.includes(nameParts[0]) && nameParts.length > 1) {
+				// "DR. RACHEL LEE" -> "RACHEL LEE"
+				nameWithoutTitle = nameParts.slice(1).join(' ');
+				firstName = nameParts[1];
+
+				// Store without title
+				if (!genderMap[nameWithoutTitle]) {
+					genderMap[nameWithoutTitle] = gender;
+				}
+			}
+
+			// Store FIRST NAME ONLY (e.g., "JOHN", "RACHEL")
+			if (firstName && firstName !== fullName && !commonTitles.includes(firstName)) {
+				if (!genderMap[firstName]) {
+					genderMap[firstName] = gender;
+				}
+			}
+
+			// Store LAST NAME if multiple parts (e.g., "LIAM CHEN" from "DR. LIAM CHEN")
+			if (nameParts.length >= 2 && !commonTitles.includes(nameParts[0])) {
+				const lastName = nameParts[nameParts.length - 1];
+				// Don't store common single-letter last names
+				if (lastName.length > 1) {
+					// This helps with partial matches
+				}
+			}
+
+			// Store full name with spaces (e.g., "LIAM CHEN" from "DR. LIAM CHEN")
+			if (nameParts.length > 1 && commonTitles.includes(nameParts[0])) {
+				const nameWithoutTitleSpaces = nameParts.slice(1).join(' ');
+				if (!genderMap[nameWithoutTitleSpaces]) {
+					genderMap[nameWithoutTitleSpaces] = gender;
+				}
+			}
+
+			console.log(`📋 Plot character: ${fullName} = ${gender} (variations stored)`);
+		}
+	}
+
+	console.log(`✅ Found ${Object.keys(genderMap).length} character mappings in plot`);
+	console.log(`📊 Character order (for main character detection):`, characterOrder.map(c => c.name).join(', '));
+
+	return { genderMap, characterOrder };
+}
+
+/**
  * Extract dialogue from script (DIALOGUE ONLY - no narration)
  * @param {string} script - Full screenplay script
  * @returns {Array} Array of dialogue objects with character, line, and order
@@ -88,8 +215,9 @@ export function extractDialogue(script) {
 			continue;
 		}
 
-		// Check if line is a character name (ALL CAPS, potentially with parenthetical)
-		const characterMatch = trimmed.match(/^([A-Z][A-Z\s]+?)(\s*\(.*?\))?:?\s*$/);
+		// Check if line is a character name (ALL CAPS, potentially with gender marker in parentheses)
+		// Format: CHARACTER NAME (male) or CHARACTER NAME (female)
+		const characterMatch = trimmed.match(/^([A-Z][A-Z\s]+?)(\s*\((male|female|.*?)\))?:?\s*$/);
 
 		if (characterMatch && trimmed.length > 0 && trimmed.length < 50) {
 			// Save previous dialogue if exists
@@ -101,6 +229,7 @@ export function extractDialogue(script) {
 					act: currentAct
 				});
 			}
+			// Extract character name (without gender marker)
 			currentCharacter = characterMatch[1].trim();
 			currentLine = '';
 		}
@@ -199,10 +328,44 @@ export function extractScriptWithNarration(script, options = {}) {
 			continue; // Skip ACT markers from being added to content
 		}
 
-		// Check for character name
-		const characterMatch = trimmed.match(/^([A-Z][A-Z\s]+?)(\s*\(.*?\))?:?\s*$/);
+		// Check for character name (allow periods for titles like DR., MR., MRS.)
+		const characterMatch = trimmed.match(/^([A-Z][A-Z\s.]+?)(\s*\(.*?\))?:?\s*$/);
 
 		if (characterMatch && trimmed.length > 0 && trimmed.length < 50) {
+			const matchedName = characterMatch[1].trim();
+
+			// Check if this is the NARRATOR (special handling)
+			if (matchedName.toUpperCase() === narratorName.toUpperCase()) {
+				// Save previous narration if exists (flush before starting new narrator block)
+				if (currentNarration) {
+					scriptElements.push({
+						character: narratorName,
+						line: currentNarration.trim(),
+						order: lineNumber++,
+						type: 'narration',
+						act: currentAct
+					});
+					currentNarration = '';
+				}
+				// Save previous dialogue if exists (switching from dialogue to narration)
+				if (currentCharacter && currentDialogue) {
+					scriptElements.push({
+						character: currentCharacter,
+						line: currentDialogue.trim(),
+						order: lineNumber++,
+						type: 'dialogue',
+						act: currentAct
+					});
+				}
+				// IMPORTANT: Clear currentCharacter so narration goes to currentNarration
+				currentCharacter = null;
+				currentDialogue = '';
+				// Don't set currentCharacter for NARRATOR
+				// Narrator content will be accumulated in currentNarration
+				continue; // Skip to next line
+			}
+
+			// Regular character (not NARRATOR)
 			// Save previous narration if exists
 			if (currentNarration) {
 				scriptElements.push({
@@ -226,14 +389,17 @@ export function extractScriptWithNarration(script, options = {}) {
 				});
 			}
 
-			currentCharacter = characterMatch[1].trim();
+			currentCharacter = matchedName;
 			currentDialogue = '';
 		}
 		// Dialogue line (after character name)
 		else if (currentCharacter && trimmed.length > 0) {
-			// Skip parentheticals
+			// Skip lines that are ONLY parentheticals
 			if (!trimmed.match(/^\(.*\)$/)) {
-				const cleanLine = trimmed.replace(/^["']|["']$/g, '');
+				// Strip inline parentheticals like "(concerned) dialogue" or "dialogue (whispers)"
+				let cleanLine = trimmed.replace(/\([^)]*\)/g, '').trim();
+				// Remove surrounding quotes
+				cleanLine = cleanLine.replace(/^["']|["']$/g, '').trim();
 				if (cleanLine && !isSceneHeading(cleanLine)) {
 					currentDialogue += (currentDialogue ? ' ' : '') + cleanLine;
 				}
@@ -448,6 +614,20 @@ export async function generateScriptVoices(options = {}) {
 	}
 	const script = fs.readFileSync(scriptFile, 'utf-8');
 
+	// Load plot file to extract character genders
+	const plotDir = path.join(__dirname, '..', 'data', 'plot');
+	const plotFile = path.join(plotDir, 'plot-complete.txt');
+	let characterGenders = {};
+	let characterOrder = [];
+	if (fs.existsSync(plotFile)) {
+		const plot = fs.readFileSync(plotFile, 'utf-8');
+		const extracted = extractCharactersFromPlot(plot);
+		characterGenders = extracted.genderMap;
+		characterOrder = extracted.characterOrder;
+	} else {
+		console.log('⚠️  Plot file not found, will use name-based gender guessing');
+	}
+
 	const {
 		provider = 'auto', // 'auto', 'elevenlabs', 'google'
 		language = 'en',
@@ -489,6 +669,10 @@ export async function generateScriptVoices(options = {}) {
 		fs.mkdirSync(outputDir, { recursive: true });
 	}
 
+	// Character genders are already extracted from plot file above
+	// (characterGenders variable is already defined)
+	console.log('📊 Character gender map from plot:', characterGenders);
+
 	// Build automatic voice mapping for characters not explicitly mapped
 	const providedMapping = voiceMapping || {};
 	// Normalize provided mapping to uppercase keys
@@ -497,33 +681,77 @@ export async function generateScriptVoices(options = {}) {
 	);
 	const uniqueChars = Array.from(new Set(dialogue.map(d => d.character)));
 
-	// Simple gender guesser for common names
+	// Gender detection function - uses extracted genders first, then falls back to name guessing
 	const FEMALE_NAMES = new Set([
-		'SARAH', 'EMILY', 'EMMA', 'ANNA', 'LUCY', 'OLIVIA', 'AVA', 'MIA', 'SOPHIA', 'ISABELLA', 'CHARLOTTE', 'RACHEL', 'BELLA', 'ELLI', 'AMELIA', 'GRACE', 'ELLA', 'LILY'
+		'SARAH', 'EMILY', 'EMMA', 'ANNA', 'LUCY', 'OLIVIA', 'AVA', 'MIA', 'SOPHIA', 'ISABELLA', 'CHARLOTTE', 'RACHEL', 'BELLA', 'ELLI', 'AMELIA', 'GRACE', 'ELLA', 'LILY', 'JESSICA', 'JENNIFER', 'LISA', 'MICHELLE', 'AMANDA', 'STEPHANIE', 'NICOLE', 'HANNAH', 'MADISON', 'CHLOE'
 	]);
 	const MALE_NAMES = new Set([
-		'JOHN', 'JACK', 'JAMES', 'MIKE', 'MICHAEL', 'MARCUS', 'ADAM', 'ANTONI', 'ARNOLD', 'HENRY', 'WILLIAM', 'LIAM', 'NOAH', 'SAM', 'JOSH'
+		'JOHN', 'JACK', 'JAMES', 'MIKE', 'MICHAEL', 'MARCUS', 'ADAM', 'ANTONI', 'ARNOLD', 'HENRY', 'WILLIAM', 'LIAM', 'NOAH', 'SAM', 'JOSH', 'SCOTT', 'DAVID', 'ROBERT', 'DANIEL', 'MATTHEW', 'JOSEPH', 'ANDREW', 'RYAN', 'CHRISTOPHER', 'BRIAN', 'KEVIN', 'THOMAS', 'JASON', 'BRANDON', 'ERIC', 'TYLER', 'JUSTIN', 'BENJAMIN', 'JACOB', 'ALEXANDER', 'NATHAN', 'JONATHAN', 'LUKE', 'MARK', 'PAUL', 'PETER', 'STEVEN', 'PATRICK', 'SEAN', 'KYLE', 'DEREK', 'CHAD', 'TRAVIS', 'CONNOR', 'ETHAN', 'OLIVER', 'SEBASTIAN', 'OWEN', 'CALEB', 'DYLAN', 'LUCAS', 'MASON', 'LOGAN', 'CARTER', 'JACKSON', 'HUNTER', 'AARON', 'GABRIEL', 'JULIAN', 'WYATT', 'ISAAC', 'CHARLES', 'GEORGE', 'FRANK', 'RICHARD', 'ANTHONY', 'DONALD', 'KENNETH', 'GARY', 'LARRY', 'TERRY', 'JERRY', 'DENNIS', 'WAYNE', 'RANDY', 'GREGORY', 'RONALD', 'TIMOTHY', 'EDWARD', 'JEFFREY', 'LAWRENCE'
 	]);
 	const guessGender = (name) => {
-		const first = String(name || '').toUpperCase().split(/\s|\(/)[0];
-		if (FEMALE_NAMES.has(first)) return 'female';
-		if (MALE_NAMES.has(first)) return 'male';
-		if (first.endsWith('A')) return 'female';
+		const nameUpper = String(name || '').toUpperCase().trim();
+
+		// PRIORITY 1: Use extracted gender from CHARACTER section in plot
+		if (characterGenders[nameUpper]) {
+			console.log(`✅ Gender from plot CHARACTER section: ${nameUpper} = ${characterGenders[nameUpper]}`);
+			return characterGenders[nameUpper];
+		}
+
+		// PRIORITY 2: Fallback to name guessing (for backwards compatibility)
+		const first = nameUpper.split(/\s|\(/)[0];
+		if (FEMALE_NAMES.has(first)) {
+			console.log(`ℹ️  Gender from name list: ${nameUpper} = female (${first} in FEMALE_NAMES)`);
+			return 'female';
+		}
+		if (MALE_NAMES.has(first)) {
+			console.log(`ℹ️  Gender from name list: ${nameUpper} = male (${first} in MALE_NAMES)`);
+			return 'male';
+		}
+		if (first.endsWith('A')) {
+			console.log(`ℹ️  Gender from name pattern: ${nameUpper} = female (ends with 'A')`);
+			return 'female';
+		}
+
+		console.log(`⚠️  Unknown gender for: ${nameUpper} (no plot CHARACTER match, not in name list, no pattern match)`);
 		return 'unknown';
 	};
 
-	// Voice pools per provider
-	const gcpFemale = ['en-US-Neural2-F', 'en-GB-Neural2-C', 'en-AU-Neural2-A'];
-	const gcpMale = ['en-US-Neural2-D', 'en-GB-Neural2-B', 'en-US-Neural2-G'];
-	const gcpNarrator = 'en-US-Wavenet-D'; // VERY DEEP male narrator - Wavenet-D with aggressive pitch
-	// Apply VERY DEEP tone for the narrator on Google Cloud TTS only
-	const gcpNarratorSettings = { speakingRate: 0.82, pitch: -10.0 };
+	// Voice pools per provider - MAIN CHARACTERS + DIVERSE SUPPORTING CAST
+
+	// MAIN CHARACTER VOICES (consistent, high-quality)
+	const gcpMainMale = 'en-GB-Wavenet-D';      // British, deep & fierce (not as deep as narrator)
+	const gcpMainFemale = 'en-US-Neural2-H';    // American female, clear & strong
+
+	// SUPPORTING CHARACTER VOICES (diverse international accents)
+	const gcpSupportingFemale = [
+		'en-GB-Neural2-A',      // British female
+		'en-AU-Neural2-A',      // Australian female
+		'en-IN-Neural2-A',      // Indian female
+		'en-AU-Wavenet-A',      // Australian Wavenet female
+	];
+	const gcpSupportingMale = [
+		'en-IN-Neural2-B',      // Indian accent (Asia)
+		'en-AU-Neural2-D',      // Australian accent
+		'en-IN-Wavenet-B',      // Indian Wavenet
+		'en-AU-Wavenet-D',      // Australian Wavenet
+		'en-GB-Neural2-B',      // British (lighter than main)
+	];
+
+	const gcpNarrator = 'en-US-Wavenet-D'; // VERY DEEP male narrator
+
+	// Voice settings for different character types
+	const gcpNarratorSettings = { speakingRate: 0.82, pitch: -10.0 };  // Very deep narrator
+	const gcpMainMaleSettings = { speakingRate: 0.92, pitch: -6.0 };   // British main (deep & fierce)
+	const gcpMainFemaleSettings = { speakingRate: 0.95, pitch: -2.0 }; // American main (strong, clear)
+	const gcpMaleSettings = { speakingRate: 0.95, pitch: -5.0 };       // Supporting males
+	const gcpFemaleSettings = { speakingRate: 0.98, pitch: -3.0 };     // Supporting females
 
 	const elFemale = ['rachel', 'bella', 'elli', 'domi', 'dorothy'];
 	const elMale = ['john', 'adam', 'josh', 'antoni', 'arnold'];
 	const elNarrator = 'john'; // deep male
 
 	let fIdx = 0, mIdx = 0, uIdx = 0;
+	let mainMaleAssigned = false, mainFemaleAssigned = false;
 	const autoMapping = {};
 
 	// Assign narrator first if present or requested
@@ -532,17 +760,65 @@ export async function generateScriptVoices(options = {}) {
 		autoMapping['NARRATOR'] = (provider === 'google-cloud-tts') ? gcpNarrator : elNarrator;
 	}
 
+	// Determine main characters from plot order (first male and first female in characterOrder)
+	let mainMaleCharacter = null;
+	let mainFemaleCharacter = null;
+
+	if (characterOrder && characterOrder.length > 0) {
+		// Find first male and first female from plot order
+		for (const charInfo of characterOrder) {
+			if (!mainMaleCharacter && charInfo.gender === 'male') {
+				mainMaleCharacter = charInfo.name;
+				console.log(`👑 Main male character from plot order: ${mainMaleCharacter}`);
+			}
+			if (!mainFemaleCharacter && charInfo.gender === 'female') {
+				mainFemaleCharacter = charInfo.name;
+				console.log(`👑 Main female character from plot order: ${mainFemaleCharacter}`);
+			}
+			if (mainMaleCharacter && mainFemaleCharacter) break;
+		}
+	}
+
+	// Process characters in the order they appear in the script (not alphabetically)
 	for (const ch of uniqueChars) {
 		const up = String(ch).toUpperCase();
 		if (up === 'NARRATOR') continue;
 		if (providedMappingUpper[up]) continue;
 		const g = guessGender(ch);
+
 		if (provider === 'google-cloud-tts') {
-			if (g === 'female') autoMapping[ch] = gcpFemale[fIdx++ % gcpFemale.length];
-			else if (g === 'male') autoMapping[ch] = gcpMale[mIdx++ % gcpMale.length];
-			else {
-				// rotate across both pools
-				const both = [...gcpFemale, ...gcpMale];
+			// Check if this character is a main character based on plot order
+			const isMainMale = mainMaleCharacter && (
+				up === mainMaleCharacter ||
+				up === mainMaleCharacter.split(' ')[0] || // First name
+				up === mainMaleCharacter.replace(/^(DR\.|MR\.|MRS\.|MS\.)\s+/i, '') // Without title
+			);
+			const isMainFemale = mainFemaleCharacter && (
+				up === mainFemaleCharacter ||
+				up === mainFemaleCharacter.split(' ')[0] || // First name
+				up === mainFemaleCharacter.replace(/^(DR\.|MR\.|MRS\.|MS\.)\s+/i, '') // Without title
+			);
+
+			// Assign MAIN CHARACTER voices based on plot order
+			if (g === 'female') {
+				if (isMainFemale && !mainFemaleAssigned) {
+					autoMapping[ch] = gcpMainFemale;  // American main female
+					mainFemaleAssigned = true;
+					console.log(`👑 Main Female Character: ${ch} -> ${gcpMainFemale} (American) [from plot order]`);
+				} else {
+					autoMapping[ch] = gcpSupportingFemale[fIdx++ % gcpSupportingFemale.length];
+				}
+			} else if (g === 'male') {
+				if (isMainMale && !mainMaleAssigned) {
+					autoMapping[ch] = gcpMainMale;  // British main male
+					mainMaleAssigned = true;
+					console.log(`👑 Main Male Character: ${ch} -> ${gcpMainMale} (British) [from plot order]`);
+				} else {
+					autoMapping[ch] = gcpSupportingMale[mIdx++ % gcpSupportingMale.length];
+				}
+			} else {
+				// Unknown gender - use supporting cast
+				const both = [...gcpSupportingFemale, ...gcpSupportingMale];
 				autoMapping[ch] = both[uIdx++ % both.length];
 			}
 		} else if (provider === 'elevenlabs') {
@@ -578,8 +854,8 @@ export async function generateScriptVoices(options = {}) {
 	console.log(`\n🎙️  Generating ${dialogue.length} voice clips in parallel...`);
 	console.log(`   Provider: ${provider}`);
 	console.log(`   This should be much faster than sequential processing!\n`);
-	
-	const voicePromises = dialogue.map((dialogueItem, index) => 
+
+	const voicePromises = dialogue.map((dialogueItem, index) =>
 		generateSingleVoice(
 			dialogueItem,
 			index,
@@ -589,13 +865,19 @@ export async function generateScriptVoices(options = {}) {
 				outputDir,
 				mappingUpper,
 				gcpNarrator,
+				gcpMainMale,
+				gcpMainFemale,
 				gcpNarratorSettings,
+				gcpMainMaleSettings,
+				gcpMainFemaleSettings,
+				gcpMaleSettings,
+				gcpFemaleSettings,
 				elevenlabsApiKey,
 				config
 			}
 		)
 	);
-	
+
 	const results = await Promise.all(voicePromises);
 	console.log(`\n✅ All ${results.length} voice clips generated!`);
 
@@ -623,7 +905,13 @@ async function generateSingleVoice(dialogueItem, index, options) {
 		outputDir,
 		mappingUpper,
 		gcpNarrator,
+		gcpMainMale,
+		gcpMainFemale,
 		gcpNarratorSettings,
+		gcpMainMaleSettings,
+		gcpMainFemaleSettings,
+		gcpMaleSettings,
+		gcpFemaleSettings,
 		elevenlabsApiKey
 	} = options;
 
@@ -649,13 +937,45 @@ async function generateSingleVoice(dialogueItem, index, options) {
 			const gcVoiceName = mappingUpper[key]
 				|| (key === 'NARRATOR' ? gcpNarrator : 'en-US-Neural2-D');
 			const languageCode = languageCodeFromVoiceName(gcVoiceName, 'en-US');
-			
+
+			// Determine voice settings based on character type
+			let voiceSettings;
+			let accentInfo = '';
+			let characterType = '';
+
 			if (key === 'NARRATOR') {
-				console.log(`   🔊 [${index + 1}] NARRATOR - Voice: ${gcVoiceName}, Pitch: ${gcpNarratorSettings.pitch}, Rate: ${gcpNarratorSettings.speakingRate}`);
+				voiceSettings = gcpNarratorSettings;
+				console.log(`   🔊 [${index + 1}] NARRATOR - Voice: ${gcVoiceName}, Pitch: ${voiceSettings.pitch}, Rate: ${voiceSettings.speakingRate}`);
 			} else {
-				console.log(`   🎙️  [${index + 1}] Voice: ${gcVoiceName}`);
+				// Detect accent from voice name
+				if (gcVoiceName.includes('en-IN')) accentInfo = ' (Indian)';
+				else if (gcVoiceName.includes('en-GB')) accentInfo = ' (British)';
+				else if (gcVoiceName.includes('en-AU')) accentInfo = ' (Australian)';
+				else if (gcVoiceName.includes('en-US')) accentInfo = ' (American)';
+
+				// Check if this is a MAIN CHARACTER voice
+				const isMainMale = gcVoiceName === gcpMainMale;
+				const isMainFemale = gcVoiceName === gcpMainFemale;
+
+				if (isMainMale) {
+					voiceSettings = gcpMainMaleSettings;
+					characterType = '👑 MAIN Male';
+				} else if (isMainFemale) {
+					voiceSettings = gcpMainFemaleSettings;
+					characterType = '👑 MAIN Female';
+				} else {
+					// Supporting character - detect gender
+					const isFemaleVoice =
+						gcVoiceName.match(/-(A|C|F|H)($|[^a-z])/i) ||
+						gcVoiceName.toLowerCase().includes('female');
+
+					voiceSettings = isFemaleVoice ? gcpFemaleSettings : gcpMaleSettings;
+					characterType = isFemaleVoice ? 'Female' : 'Male';
+				}
+
+				console.log(`   🎙️  [${index + 1}] ${characterType}${accentInfo} - Voice: ${gcVoiceName}, Pitch: ${voiceSettings.pitch}, Rate: ${voiceSettings.speakingRate}`);
 			}
-			
+
 			chosenVoiceName = gcVoiceName;
 			// Chunk very long inputs for safety (API handles up to ~5000 chars)
 			const maxLen = 4500;
@@ -663,22 +983,24 @@ async function generateSingleVoice(dialogueItem, index, options) {
 				const chunks = [];
 				for (let start = 0; start < line.length; start += maxLen) {
 					const chunk = line.substring(start, start + maxLen);
-					const gcOpts = { languageCode, voiceName: gcVoiceName };
-					if (key === 'NARRATOR') {
-						gcOpts.speakingRate = gcpNarratorSettings.speakingRate;
-						gcOpts.pitch = gcpNarratorSettings.pitch;
-					}
+					const gcOpts = {
+						languageCode,
+						voiceName: gcVoiceName,
+						speakingRate: voiceSettings.speakingRate,
+						pitch: voiceSettings.pitch
+					};
 					const buf = await generateWithGoogleCloudTTS(chunk, gcOpts);
 					chunks.push(buf);
 					await sleep(250);
 				}
 				audioBuffer = Buffer.concat(chunks);
 			} else {
-				const gcOpts = { languageCode, voiceName: gcVoiceName };
-				if (key === 'NARRATOR') {
-					gcOpts.speakingRate = gcpNarratorSettings.speakingRate;
-					gcOpts.pitch = gcpNarratorSettings.pitch;
-				}
+				const gcOpts = {
+					languageCode,
+					voiceName: gcVoiceName,
+					speakingRate: voiceSettings.speakingRate,
+					pitch: voiceSettings.pitch
+				};
 				audioBuffer = await generateWithGoogleCloudTTS(line, gcOpts);
 			}
 			providerUsed = 'google-cloud-tts';
@@ -686,9 +1008,7 @@ async function generateSingleVoice(dialogueItem, index, options) {
 		} catch (error) {
 			console.log(`   ❌ [${index + 1}] Google Cloud TTS failed: ${error.message}`);
 		}
-	}
-
-	// Try ElevenLabs if available
+	}	// Try ElevenLabs if available
 	if (!audioBuffer && provider !== 'google' && elevenlabsApiKey) {
 		const quotaAvailable = hasQuotaAvailable(line.length);
 		if (quotaAvailable) {

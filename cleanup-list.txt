@@ -1,0 +1,26 @@
+=== BACKEND CLEANUP ===
+
+TEST FILES TO REMOVE (keep only the latest comprehensive tests):
+- test-act-detection-direct.js
+- test-all-acts.js
+- test-extraction.js
+- test-gender-extraction.js
+- test-male-voices.js
+- test-narrator-voice.js
+- test-script-extraction.js
+- test-script-lines.js
+- test-verify-acts.js
+- test-voice-acts.js
+- test-voice-assignment.js
+- test-voice-generation.js
+
+KEEP:
+- test-voice-assignments.js (comprehensive diagnostic)
+- test-voice-generation-fixed.js (full generation test)
+- test-voice-mapping.js (initial diagnostic)
+
+DOCS TO CONSOLIDATE/REMOVE (many are redundant fix logs):
+Keep essential docs, remove incremental fix logs
+
+DATA FOLDERS TO CHECK:
+- voice-tests/ (likely obsolete)

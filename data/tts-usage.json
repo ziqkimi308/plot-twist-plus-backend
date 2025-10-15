@@ -1,7 +1,7 @@
 {
   "elevenlabs": {
     "currentMonth": "2025-10",
-    "charactersUsed": 2343,
+    "charactersUsed": 3685,
     "requests": [
       {
         "timestamp": "2025-10-14T13:04:28.020Z",
@@ -92,6 +92,96 @@
         "timestamp": "2025-10-14T13:05:17.395Z",
         "characters": 145,
         "textPreview": "John's mind reels with questions. What is Project "
+      },
+      {
+        "timestamp": "2025-10-15T10:03:18.533Z",
+        "characters": 100,
+        "textPreview": "Scott, you're a highly advanced AI created to inve"
+      },
+      {
+        "timestamp": "2025-10-15T10:03:18.561Z",
+        "characters": 73,
+        "textPreview": "(to himself) This has to be a lead. I'll check out"
+      },
+      {
+        "timestamp": "2025-10-15T10:03:20.377Z",
+        "characters": 61,
+        "textPreview": "(whispering to himself) This is it. This has to be"
+      },
+      {
+        "timestamp": "2025-10-15T10:14:50.223Z",
+        "characters": 82,
+        "textPreview": "Change the world? By controlling people's minds? N"
+      },
+      {
+        "timestamp": "2025-10-15T10:14:50.940Z",
+        "characters": 142,
+        "textPreview": "A car accident? What happened? DR. SARAH LEE (fema"
+      },
+      {
+        "timestamp": "2025-10-15T10:21:45.197Z",
+        "characters": 84,
+        "textPreview": "I'm so sorry, doctor. I never meant to deceive you"
+      },
+      {
+        "timestamp": "2025-10-15T10:21:45.995Z",
+        "characters": 177,
+        "textPreview": "Thank you, doctor. Thank you for saving my husband"
+      },
+      {
+        "timestamp": "2025-10-15T10:35:21.677Z",
+        "characters": 33,
+        "textPreview": "(scared) Oh, John! What happened?"
+      },
+      {
+        "timestamp": "2025-10-15T10:35:21.795Z",
+        "characters": 48,
+        "textPreview": "(whistling) Come on, buddy! Let's get this done!"
+      },
+      {
+        "timestamp": "2025-10-15T10:45:43.291Z",
+        "characters": 30,
+        "textPreview": "Symbols? What kind of symbols?"
+      },
+      {
+        "timestamp": "2025-10-15T10:45:43.306Z",
+        "characters": 37,
+        "textPreview": "Expecting me? What's going on, Marry?"
+      },
+      {
+        "timestamp": "2025-10-15T10:45:43.681Z",
+        "characters": 170,
+        "textPreview": "It's just... strange things have been happening at"
+      },
+      {
+        "timestamp": "2025-10-15T10:56:19.893Z",
+        "characters": 66,
+        "textPreview": "It's probably just stress, Marry. We'll get throug"
+      },
+      {
+        "timestamp": "2025-10-15T10:56:20.112Z",
+        "characters": 68,
+        "textPreview": "I just need to know what's going on, Dr. Crowley. "
+      },
+      {
+        "timestamp": "2025-10-15T11:03:27.966Z",
+        "characters": 25,
+        "textPreview": "And we were a part of it?"
+      },
+      {
+        "timestamp": "2025-10-15T11:03:28.004Z",
+        "characters": 45,
+        "textPreview": "Mary, I'm heading to the ER. Got a code blue."
+      },
+      {
+        "timestamp": "2025-10-15T11:18:25.355Z",
+        "characters": 36,
+        "textPreview": "What do you know about this message?"
+      },
+      {
+        "timestamp": "2025-10-15T11:18:25.560Z",
+        "characters": 65,
+        "textPreview": "You're not telling me everything, Crowley. What el"
       }
     ],
     "limit": 10000

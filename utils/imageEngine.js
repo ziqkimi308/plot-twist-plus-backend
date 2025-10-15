@@ -75,7 +75,7 @@ async function generateActImages(imagePrompts, customConfig = {}) {
 		try {
 			console.log(`Act ${act}: Trying Pollinations.ai...`);
 			imageBuffer = await generateWithPollinations(prompt, dimensions);
-			if (imageBuffer) {
+			if (imageBuffer && imageBuffer.length > 1024) {
 				console.log(`Act ${act}: Successfully generated with Pollinations.ai`);
 				imageResult = {
 					provider: 'pollinations.ai',
@@ -91,7 +91,7 @@ async function generateActImages(imagePrompts, customConfig = {}) {
 			try {
 				console.log(`Act ${act}: Trying Hugging Face...`);
 				imageBuffer = await generateWithHuggingFace(prompt, huggingfaceApiKey, dimensions);
-				if (imageBuffer) {
+				if (imageBuffer && imageBuffer.length > 1024) {
 					console.log(`Act ${act}: Successfully generated with Hugging Face`);
 					imageResult = {
 						provider: 'huggingface',
@@ -104,8 +104,8 @@ async function generateActImages(imagePrompts, customConfig = {}) {
 			}
 		}
 
-		// Fallback: Use placeholder image service
-		if (!imageResult) {
+		// Fallback: Use placeholder image service or if buffer too small/invalid
+		if (!imageResult || !imageResult.buffer || imageResult.buffer.length <= 1024) {
 			console.log(`Act ${act}: All APIs failed, using fallback placeholder`);
 			imageBuffer = await generateFallbackImage(prompt, dimensions);
 			imageResult = {
@@ -115,8 +115,11 @@ async function generateActImages(imagePrompts, customConfig = {}) {
 			};
 		}
 
-		// Save image to disk
+		// Save image to disk (validate buffer before writing)
 		try {
+			if (!imageResult.buffer || imageResult.buffer.length === 0) {
+				throw new Error('Empty image buffer');
+			}
 			fs.writeFileSync(filepath, imageResult.buffer);
 			console.log(`Act ${act}: Saved to ${filepath}`);
 

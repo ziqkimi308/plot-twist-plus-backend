@@ -54,7 +54,7 @@ function getVoiceId(voiceName) {
  * @param {string} script - Full screenplay script
  * @returns {Array} Array of dialogue objects with character, line, and order
  */
-function extractDialogue(script) {
+export function extractDialogue(script) {
 	if (!script || typeof script !== 'string') {
 		throw new Error('Script must be a non-empty string');
 	}
@@ -72,6 +72,17 @@ function extractDialogue(script) {
 		// Check for ACT markers
 		const actMatch = trimmed.match(/^\*\*ACT\s+(ONE|TWO|THREE)\*\*/i);
 		if (actMatch) {
+			// Before switching acts, flush any pending dialogue under the current act
+			if (currentCharacter && currentLine) {
+				dialogue.push({
+					character: currentCharacter,
+					line: currentLine.trim(),
+					order: lineNumber++,
+					act: currentAct
+				});
+				currentCharacter = null;
+				currentLine = '';
+			}
 			currentAct = actMatch[1].toUpperCase();
 			continue;
 		}
@@ -125,7 +136,7 @@ function extractDialogue(script) {
  * @param {Object} options - Extraction options
  * @returns {Array} Array of script elements (narration + dialogue) in order
  */
-function extractScriptWithNarration(script, options = {}) {
+export function extractScriptWithNarration(script, options = {}) {
 	if (!script || typeof script !== 'string') {
 		throw new Error('Script must be a non-empty string');
 	}
@@ -293,6 +304,8 @@ function extractScriptWithNarration(script, options = {}) {
 		});
 	}
 
+	// Note: Do not alter act assignments post-process. Acts are set when content is flushed.
+
 	return scriptElements;
 }
 
@@ -371,9 +384,9 @@ async function generateWithGoogleTTS(text, language = 'en') {
  * @param {Object} options - Generation options
  * @returns {Promise<Array>} Array of audio results with character, audio buffer, and metadata
  */
-async function generateScriptVoices(options = {}) {
+export async function generateScriptVoices(options = {}) {
 	// Load complete script from data/script folder
-	const scriptDir = path.join(process.cwd(), 'data', 'script');
+	const scriptDir = path.join(__dirname, '..', 'data', 'script');
 	if (!fs.existsSync(scriptDir)) {
 		throw new Error('Script folder does not exist');
 	}
@@ -386,7 +399,7 @@ async function generateScriptVoices(options = {}) {
 	const {
 		provider = 'auto', // 'auto', 'elevenlabs', 'google'
 		language = 'en',
-		outputDir = path.join(process.cwd(), 'data', 'voice'),
+		outputDir = path.join(__dirname, '..', 'data', 'voice'),
 		voiceMapping = {}, // Map character names to voice names
 		includeNarration = false, // Include action lines as narration
 		narratorVoice = 'john' // Voice for narrator (default: John Doe - Deep narrator voice)
@@ -548,4 +561,4 @@ function sleep(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export { extractDialogue, extractScriptWithNarration, generateScriptVoices, ELEVENLABS_VOICES };
+export { ELEVENLABS_VOICES };

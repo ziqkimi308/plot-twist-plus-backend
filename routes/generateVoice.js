@@ -103,18 +103,19 @@ router.post('/', async (req, res) => {
 		console.log(`\nCurrent ElevenLabs usage: ${usageBeforeStats.used} / ${usageBeforeStats.limit} chars (${usageBeforeStats.percentUsed}%)`);
 
 		// Clear previous voice data
-		const voiceDir = path.join(process.cwd(), 'data', 'voice');
+		const voiceDir = path.join(__dirname, '..', 'data', 'voice');
 		if (fs.existsSync(voiceDir)) {
 			fs.rmSync(voiceDir, { recursive: true, force: true });
 		}
 
 		// Generate voice audio (loads script from data/script folder)
-		// TEMPORARILY USING GOOGLE TTS TO SAVE API CALLS
+		// Provider selection via env (default: google to save API calls)
+		const provider = process.env.TTS_PROVIDER || 'google';
 		const results = await generateScriptVoices({
 			includeNarration,
 			narratorVoice,
 			voiceMapping,
-			provider: 'google'  // Force Google TTS (free, unlimited)
+			provider
 		});
 
 		// Get usage stats after generation
@@ -220,7 +221,7 @@ router.get('/audio/:actFolder/:filename', (req, res) => {
 		}
 
 		// Construct file path: data/voice/voice-act-{one|two|three}/filename.mp3
-		const voiceDir = path.join(process.cwd(), 'data', 'voice');
+		const voiceDir = path.join(__dirname, '..', 'data', 'voice');
 		const filePath = path.join(voiceDir, actFolder, filename);
 
 		if (fs.existsSync(filePath)) {
@@ -241,29 +242,6 @@ router.get('/audio/:actFolder/:filename', (req, res) => {
 			success: false,
 			error: error.message || 'Failed to serve audio file'
 		});
-	}
-});
-
-/**
- * GET /api/generate-voice/audio/:actFolder/:filename
- * Serves generated audio files from per-act folders
- */
-router.get('/audio/:actFolder/:filename', (req, res) => {
-	try {
-		const { actFolder, filename } = req.params;
-		if (filename.includes('..') || filename.includes('/') || filename.includes('\\') || actFolder.includes('..')) {
-			return res.status(400).json({ success: false, error: 'Invalid filename or folder' });
-		}
-		const voiceDir = path.join(process.cwd(), 'data', 'voice', actFolder);
-		const filePath = path.join(voiceDir, filename);
-		if (fs.existsSync(filePath)) {
-			res.type('audio/mpeg');
-			return res.sendFile(filePath);
-		}
-		res.status(404).json({ success: false, error: 'Audio file not found' });
-	} catch (error) {
-		console.error('Error serving audio file:', error);
-		res.status(500).json({ success: false, error: error.message || 'Failed to serve audio file' });
 	}
 });
 

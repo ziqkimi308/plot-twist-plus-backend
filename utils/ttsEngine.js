@@ -471,9 +471,7 @@ export async function generateScriptVoices(options = {}) {
 			skipTransitions: true
 		});
 		// Add narrator to voice mapping if not already set
-		if (!voiceMapping['NARRATOR']) {
-			voiceMapping['NARRATOR'] = narratorVoice;
-		}
+		// defer narrator assignment to auto-mapping below to respect provider
 		console.log(`Found ${dialogue.length} script elements (narration + dialogue)`);
 	} else {
 		console.log('Extracting dialogue from script...');
@@ -489,6 +487,70 @@ export async function generateScriptVoices(options = {}) {
 	// Create output directory if needed
 	if (!fs.existsSync(outputDir)) {
 		fs.mkdirSync(outputDir, { recursive: true });
+	}
+
+	// Build automatic voice mapping for characters not explicitly mapped
+	const providedMapping = voiceMapping || {};
+	const uniqueChars = Array.from(new Set(dialogue.map(d => d.character)));
+
+	// Simple gender guesser for common names
+	const FEMALE_NAMES = new Set([
+		'SARAH', 'EMILY', 'EMMA', 'ANNA', 'LUCY', 'OLIVIA', 'AVA', 'MIA', 'SOPHIA', 'ISABELLA', 'CHARLOTTE', 'RACHEL', 'BELLA', 'ELLI', 'AMELIA', 'GRACE', 'ELLA', 'LILY'
+	]);
+	const MALE_NAMES = new Set([
+		'JOHN', 'JACK', 'JAMES', 'MIKE', 'MICHAEL', 'MARCUS', 'ADAM', 'ANTONI', 'ARNOLD', 'HENRY', 'WILLIAM', 'LIAM', 'NOAH', 'SAM', 'JOSH'
+	]);
+	const guessGender = (name) => {
+		const first = String(name || '').toUpperCase().split(/\s|\(/)[0];
+		if (FEMALE_NAMES.has(first)) return 'female';
+		if (MALE_NAMES.has(first)) return 'male';
+		if (first.endsWith('A')) return 'female';
+		return 'unknown';
+	};
+
+	// Voice pools per provider
+	const gcpFemale = ['en-US-Neural2-F', 'en-GB-Neural2-C', 'en-AU-Neural2-A'];
+	const gcpMale = ['en-US-Neural2-D', 'en-GB-Neural2-B', 'en-US-Neural2-G'];
+	const gcpNarrator = 'en-US-Studio-O'; // deep male narrator
+
+	const elFemale = ['rachel', 'bella', 'elli', 'domi', 'dorothy'];
+	const elMale = ['john', 'adam', 'josh', 'antoni', 'arnold'];
+	const elNarrator = 'john'; // deep male
+
+	let fIdx = 0, mIdx = 0, uIdx = 0;
+	const autoMapping = {};
+
+	// Assign narrator first if present or requested
+	if ((includeNarration || uniqueChars.includes('NARRATOR')) && !providedMapping['NARRATOR']) {
+		autoMapping['NARRATOR'] = (provider === 'google-cloud-tts') ? gcpNarrator : elNarrator;
+	}
+
+	for (const ch of uniqueChars) {
+		if (ch === 'NARRATOR') continue;
+		if (providedMapping[ch]) continue;
+		const g = guessGender(ch);
+		if (provider === 'google-cloud-tts') {
+			if (g === 'female') autoMapping[ch] = gcpFemale[fIdx++ % gcpFemale.length];
+			else if (g === 'male') autoMapping[ch] = gcpMale[mIdx++ % gcpMale.length];
+			else {
+				// rotate across both pools
+				const both = [...gcpFemale, ...gcpMale];
+				autoMapping[ch] = both[uIdx++ % both.length];
+			}
+		} else if (provider === 'elevenlabs') {
+			if (g === 'female') autoMapping[ch] = elFemale[fIdx++ % elFemale.length];
+			else if (g === 'male') autoMapping[ch] = elMale[mIdx++ % elMale.length];
+			else {
+				const both = [...elFemale, ...elMale];
+				autoMapping[ch] = both[uIdx++ % both.length];
+			}
+		}
+	}
+
+	const mapping = { ...autoMapping, ...providedMapping };
+
+	if (Object.keys(autoMapping).length) {
+		console.log('Auto voice mapping applied:', autoMapping);
 	}
 
 	const results = [];
@@ -516,7 +578,7 @@ export async function generateScriptVoices(options = {}) {
 		// Google Cloud TTS path (explicit provider)
 		if (!audioBuffer && provider === 'google-cloud-tts') {
 			try {
-				const gcVoiceName = voiceMapping[character]
+				const gcVoiceName = mapping[character]
 					|| (character === 'NARRATOR' ? 'en-US-Studio-O' : 'en-US-Neural2-D');
 				const languageCode = languageCodeFromVoiceName(gcVoiceName, 'en-US');
 				console.log(`   Trying Google Cloud TTS (voice: ${gcVoiceName})...`);
@@ -553,7 +615,7 @@ export async function generateScriptVoices(options = {}) {
 			const quotaAvailable = hasQuotaAvailable(line.length);
 			if (quotaAvailable) {
 				try {
-					const voiceName = voiceMapping[character] || 'adam';
+					const voiceName = mapping[character] || 'adam';
 					const voice_id = getVoiceId(voiceName);
 					console.log(`   Trying ElevenLabs (voice: ${voiceName})...`);
 					audioBuffer = await generateWithElevenLabs(line, elevenlabsApiKey, { voice_id });
